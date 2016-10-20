@@ -1,0 +1,4 @@
+C:\Users\AZ55845\Documents\Euler\Euler\DP2015-12-18\bin\Debug\DP2015-12-18.exe
+C:\Users\AZ55845\Documents\Euler\Euler\DP2015-12-18\bin\Debug\DP2015-12-18.pdb
+C:\Users\AZ55845\Documents\Euler\Euler\DP2015-12-18\obj\x86\Debug\DP2015-12-18.exe
+C:\Users\AZ55845\Documents\Euler\Euler\DP2015-12-18\obj\x86\Debug\DP2015-12-18.pdb

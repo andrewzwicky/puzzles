@@ -1,0 +1,4 @@
+C:\Users\AZ55845\Documents\Euler\Euler\Problem34\bin\Debug\Problem34.exe
+C:\Users\AZ55845\Documents\Euler\Euler\Problem34\bin\Debug\Problem34.pdb
+C:\Users\AZ55845\Documents\Euler\Euler\Problem34\obj\x86\Debug\Problem34.exe
+C:\Users\AZ55845\Documents\Euler\Euler\Problem34\obj\x86\Debug\Problem34.pdb
