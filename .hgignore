@@ -1,0 +1,2 @@
+syntax: regexp
+.*?/\.ipynb_checkpoints/.*?
