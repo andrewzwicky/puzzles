@@ -1,2 +1,3 @@
 syntax: regexp
 .*?/\.ipynb_checkpoints/.*?
+ACM-ICPC/.*?/secret/.*?
