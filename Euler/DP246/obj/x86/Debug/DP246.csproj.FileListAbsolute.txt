@@ -1,4 +1,0 @@
-C:\Users\AZ55845\Documents\Euler\Euler\DP246\bin\Debug\DP246.exe
-C:\Users\AZ55845\Documents\Euler\Euler\DP246\bin\Debug\DP246.pdb
-C:\Users\AZ55845\Documents\Euler\Euler\DP246\obj\x86\Debug\DP246.exe
-C:\Users\AZ55845\Documents\Euler\Euler\DP246\obj\x86\Debug\DP246.pdb

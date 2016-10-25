@@ -1,4 +1,0 @@
-C:\Users\AZ55845\Documents\Euler\Euler\Problem35\bin\Debug\Problem35.exe
-C:\Users\AZ55845\Documents\Euler\Euler\Problem35\bin\Debug\Problem35.pdb
-C:\Users\AZ55845\Documents\Euler\Euler\Problem35\obj\Debug\Problem35.exe
-C:\Users\AZ55845\Documents\Euler\Euler\Problem35\obj\Debug\Problem35.pdb
