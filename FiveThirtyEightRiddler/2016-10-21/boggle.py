@@ -1,26 +1,25 @@
-from enum import IntEnum
+import pyximport; pyximport.install()
 from collections import defaultdict
 import string
 import random
-from deap import base, creator, tools, algorithms
+from deap import base, creator, tools
+from eaSimpleCheckpointing import eaSimpleCheckpointing
 import matplotlib.pyplot as plt
 import numpy
 import itertools
-import matplotlib.patheffects as path_effects
+from recurse_grid import recurse_grid
+from recurse_grid import BOARD_SIZE
+
+# noinspection PyArgumentList
+LEN_TO_SCORE = defaultdict(lambda: 11, {0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 2, 6: 3, 7: 5, 8: 11})
+
+GEN_KEY = 'Generation'
+SCORE_KEY = 'Score'
+WORD_KEY = 'Word'
+
+ANNOT_FORMAT = "{name}: {value}"
 
 
-class TrieMembership(IntEnum):
-    invalid = 1
-    prefix = 2
-    word = 3
-
-
-SCORE_DICT = defaultdict(lambda: 11, {0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 2, 6: 3, 7: 5, 8: 11})
-
-SIZE = 4
-MIN_WORD_LEN = 3
-
-_end = '_end_'
 
 '''
 Grid starts with (0,0) in the top left corner.
@@ -29,12 +28,17 @@ Y is row
 '''
 
 
-def init_grid_figure(input_string):
-    fig = plt.figure()
-    ax = fig.add_subplot(111, axisbg='#E6E3DB')
+def init_grid_figure(input_string=None):
+    if not input_string:
+        input_string = "                "
 
-    ax.set_ylim(0, SIZE)
-    ax.set_xlim(0, SIZE)
+    input_string = input_string.upper()
+
+    fig = plt.figure(figsize=(5, 6))
+    ax = fig.add_axes([0, 0, 1, 1], axisbg='#E6E3DB')
+
+    ax.set_ylim(0, BOARD_SIZE)
+    ax.set_xlim(0, BOARD_SIZE)
     ax.grid(True, linestyle="-", linewidth=2)
 
     loc = plt.MultipleLocator(base=1)
@@ -43,39 +47,68 @@ def init_grid_figure(input_string):
 
     plt.gca().set_aspect('equal', adjustable='box')
 
+    text_size = 15
+
+    annotations = {GEN_KEY: ax.text(0, 4.2, "", size=text_size),
+                   SCORE_KEY: ax.text(1.35, 4.2, "", size=text_size),
+                   WORD_KEY: ax.text(2.4, 4.2, "", size=text_size)}
+
+    pos1 = ax.get_position()  # get the original position
+    pos2 = [0, 0, pos1.width, pos1.height]
+    ax.set_position(pos2)  # set a new position
+
     ax.set_xticklabels([])
     ax.set_yticklabels([])
 
     letter_color = "#0495A8"
 
     letters = [ax.annotate(letter,
-                    xy=(y + 0.5, x + 0.5),
-                    xycoords='data',
-                    ha="center",
-                    va="center",
-                    size=40,
-                    color=letter_color,
-                    zorder=1) for letter, (x, y) in zip(input_string, itertools.product(reversed(range(SIZE)), range(SIZE)))]
+                           xy=(y + 0.5, x + 0.5),
+                           xycoords='data',
+                           ha="center",
+                           va="center",
+                           size=40,
+                           color=letter_color,
+                           zorder=1) for letter, (x, y) in
+               zip(input_string, itertools.product(reversed(range(BOARD_SIZE)), range(BOARD_SIZE)))]
 
     line, = ax.plot([],
-            [],
-            '-',
-            color="black",
-            linewidth=50,
-            zorder=2,
-            alpha=0.15,
-            solid_capstyle='round')
+                    [],
+                    '-',
+                    color="black",
+                    linewidth=50,
+                    zorder=2,
+                    alpha=0.15,
+                    solid_capstyle='round')
 
-    return fig, line, letters
+    plt.draw()
+
+    return fig, line, letters, annotations
 
 
-def update_grid_fig(line, letters, new_word_coords = None, new_grid = None):
+def update_grid_fig(line,
+                    letters,
+                    annotations,
+                    new_word_coords=None,
+                    new_grid=None,
+                    new_generation=None,
+                    new_score=None,
+                    new_word=None):
+    if new_generation is not None:
+        annotations[GEN_KEY].set_text(ANNOT_FORMAT.format(name=GEN_KEY, value=new_generation))
 
-    if new_grid:
-        for letter,new_letter in zip(letters, new_grid):
+    if new_score is not None:
+        annotations[SCORE_KEY].set_text(ANNOT_FORMAT.format(name=SCORE_KEY, value=new_score))
+
+    if new_word is not None:
+        annotations[WORD_KEY].set_text(ANNOT_FORMAT.format(name=WORD_KEY, value=new_word))
+
+    if new_grid is not None:
+        new_grid = new_grid.upper()
+        for letter, new_letter in zip(letters, new_grid):
             letter.set_text(new_letter)
 
-    if new_word_coords:
+    if new_word_coords is not None:
         x, y = zip(*list(map(word_coord_to_plot_coord, new_word_coords)))
 
         line.set_xdata(x)
@@ -83,110 +116,42 @@ def update_grid_fig(line, letters, new_word_coords = None, new_grid = None):
 
     plt.draw()
 
-def update_word_line(framedata, line, gen):
-    return update_grid_fig(line, None, new_word_coords=next(gen)[0])
 
-def update_grid_letter(framedata, letters, gen):
-    return update_grid_fig(None, letters, new_grid=next(gen))
+def update_grid(_, line, letters, anns, update_dict_generator):
+    output = next(update_dict_generator)
+    return update_grid_fig(line, letters, anns, **output)
 
 
 def word_coord_to_plot_coord(coord):
     x, y = coord
-    return x + 0.5, SIZE - y - 0.5
-
-
-def dictionary_gen():
-    with open('../../enable1.txt', 'r') as word_list:
-        for line in word_list:
-            yield line.lower().strip()
+    return x + 0.5, BOARD_SIZE - y - 0.5
 
 
 def neighbors(x, y):
     # range has to be +1 because range is not inclusive on end
-    for nx in range(max(0, x - 1), min(x + 2, SIZE)):
-        for ny in range(max(0, y - 1), min(y + 2, SIZE)):
+    for nx in range(max(0, x - 1), min(x + 2, BOARD_SIZE)):
+        for ny in range(max(0, y - 1), min(y + 2, BOARD_SIZE)):
             yield (nx, ny)
 
 
-def make_trie(words):
-    root = dict()
-    for word in words:
-        current_dict = root
-        for letter in word:
-            current_dict = current_dict.setdefault(letter, {})
-        current_dict[_end] = _end
-    return root
-
-
-def trie_member(trie, word):
-    current_dict = trie
-    for letter in word:
-        try:
-            current_dict = current_dict[letter]
-        except KeyError:
-            return TrieMembership.invalid
-    if _end in current_dict:
-        return TrieMembership.word
-    else:
-        return TrieMembership.prefix
-
-
-def recurse_grid(grid, path, current_word, words_trie, found_words):
-    if not path:  # empty path means this is the initial call.
-        for y, row in enumerate(grid):
-            for x, letter in enumerate(row):
-                for (next_path, next_word) in recurse_grid(grid, [(x, y)], letter, words_trie, found_words):
-                    yield (next_path, next_word)
-
-        return
-    position = path[-1]
-    membership = trie_member(words_trie, current_word)
-    if membership == TrieMembership.word and current_word not in found_words:
-        found_words.add(current_word)
-        yield (path, current_word)
-    if membership >= TrieMembership.prefix:
-        for nx, ny in neighbors(*position):
-            if (nx, ny) not in path:
-                new_letter = grid[ny][nx]
-                new_letter = new_letter if new_letter != 'q' else 'qu'
-                new_word = current_word + new_letter
-                if trie_member(words_trie, new_word) != TrieMembership.invalid:
-                    for (next_path, next_word) in recurse_grid(grid, list(path) + [(nx, ny)], new_word, words_trie, found_words):
-                        yield (next_path, next_word)
-
-
-def generate_word_trie(grid_string):
-    grid_string = ''.join(grid_string.lower())
-    # grid_string is expected to be a SIZE**2 length string with only letters.
-
-    grid_letters = set(grid_string.replace('q', 'qu'))
-
-    # plausible words are words from the dictionary that only contain
-    # letters found in the grid and are more than 3 letters long
-    plausible_words = [word for word in dictionary_gen() if len(word) > MIN_WORD_LEN and set(word) <= grid_letters]
-    words_trie = make_trie(plausible_words)
-
-    return words_trie
-
 
 def generate_grid_list(grid_string):
-    grid_string = grid_string.lower()
-    return [grid_string[i:i + SIZE] for i in range(0, SIZE ** 2, SIZE)]
+    grid_string = ''.join(grid_string).upper()
+    return [grid_string[i:i + BOARD_SIZE] for i in range(0, BOARD_SIZE ** 2, BOARD_SIZE)]
 
 
 def total_grid_score(grid_string):
-    grid_string = ''.join(grid_string).lower()
+    grid_string = ''.join(grid_string).upper()
 
-    word_trie = generate_word_trie(grid_string)
     grid = generate_grid_list(grid_string)
 
-    words = set(word for _, word in recurse_grid(grid, list(), "", word_trie, set()))
+    words = set(word for _, word in recurse_grid(grid))
 
-    return sum(SCORE_DICT[word_len] for word_len in map(len, words)),
+    return sum(LEN_TO_SCORE[word_len] for word_len in map(len, words)),
 
 
 def generate_random_boggle_letters():
-    return random.choice(string.ascii_lowercase)
+    return random.choice(string.ascii_uppercase)
 
 
 def mutate_grid(individual, indpb):
@@ -197,35 +162,59 @@ def mutate_grid(individual, indpb):
     return individual,
 
 
-def simulate():
+def get_best_board(stats):
+    fit_values = [ind.fitness.values[0] for ind in stats]
+    index = fit_values.index(max(fit_values))
+    return ''.join(stats[index])
+
+
+def get_num_unique_boards(stats):
+    return len(set(''.join(ind) for ind in stats))
+
+
+def simulate(population=200,
+             generations=20,
+             letter_mutate_prob=0.25,
+             tournament_size=20,
+             mating_prob=0.5,
+             individual_mutate_prob=0.2,
+             hof_size=1,
+             checkpoint=None):
     toolbox = base.Toolbox()
 
     creator.create("FitnessMax", base.Fitness, weights=(1.0,))
     creator.create("Board", list, fitness=creator.FitnessMax)
 
     toolbox.register("letter", generate_random_boggle_letters)
-    toolbox.register("individual", tools.initRepeat, creator.Board, toolbox.letter, n=SIZE ** 2)
+    toolbox.register("individual", tools.initRepeat, creator.Board, toolbox.letter, n=BOARD_SIZE ** 2)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", total_grid_score)
-    toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", mutate_grid, indpb=0.25)
-    toolbox.register("select", tools.selTournament, tournsize=20)
+    toolbox.register("mate", tools.cxOnePoint)
+    toolbox.register("mutate", mutate_grid, indpb=letter_mutate_prob)
+    toolbox.register("select", tools.selTournament, tournsize=tournament_size)
 
-    pop = toolbox.population(n=50)
-    hof = tools.HallOfFame(1)
+    pop = toolbox.population(n=population)
+    hof = tools.HallOfFame(hof_size)
 
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", numpy.mean)
     stats.register("min", numpy.min)
     stats.register("max", numpy.max)
 
-    pop, logbook = algorithms.eaSimple(pop,
-                                       toolbox,
-                                       cxpb=0.5,
-                                       mutpb=0.2,
-                                       ngen=10,
-                                       stats=stats,
-                                       halloffame=hof,
-                                       verbose=True)
+    best_stats = tools.Statistics(lambda ind: ind)
+    best_stats.register("best", get_best_board)
+    best_stats.register("uniq", get_num_unique_boards)
+
+    all_stats = tools.MultiStatistics(scores=stats, boards=best_stats)
+
+    pop, logbook = eaSimpleCheckpointing(pop,
+                                         toolbox,
+                                         cxpb=mating_prob,
+                                         mutpb=individual_mutate_prob,
+                                         ngen=generations,
+                                         stats=all_stats,
+                                         halloffame=hof,
+                                         checkpoint=checkpoint,
+                                         verbose=True)
 
     return pop, logbook, hof
