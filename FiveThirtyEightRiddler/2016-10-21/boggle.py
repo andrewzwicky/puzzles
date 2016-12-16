@@ -1,4 +1,5 @@
-import pyximport; pyximport.install()
+import pyximport
+pyximport.install()
 from collections import defaultdict
 import string
 import random
@@ -9,17 +10,18 @@ import numpy
 import itertools
 from recurse_grid import recurse_grid
 from recurse_grid import BOARD_SIZE
+import matplotlib.animation as animation
+
+
 
 # noinspection PyArgumentList
 LEN_TO_SCORE = defaultdict(lambda: 11, {0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 2, 6: 3, 7: 5, 8: 11})
 
-GEN_KEY = 'Generation'
+GEN_KEY = 'Gen'
 SCORE_KEY = 'Score'
 WORD_KEY = 'Word'
 
 ANNOT_FORMAT = "{name}: {value}"
-
-
 
 '''
 Grid starts with (0,0) in the top left corner.
@@ -134,7 +136,6 @@ def neighbors(x, y):
             yield (nx, ny)
 
 
-
 def generate_grid_list(grid_string):
     grid_string = ''.join(grid_string).upper()
     return [grid_string[i:i + BOARD_SIZE] for i in range(0, BOARD_SIZE ** 2, BOARD_SIZE)]
@@ -160,6 +161,47 @@ def mutate_grid(individual, indpb):
             individual[i] = generate_random_boggle_letters()
 
     return individual,
+
+
+def prop_gen(logbook_arg):
+    grid_strings = [b['best'] for b in logbook_arg.chapters['boards']]
+    maxes = [b['max'] for b in logbook_arg.chapters['scores']]
+    generations = itertools.count()
+
+    for s, m, g in zip(grid_strings, maxes, generations):
+        yield {'new_grid': s,
+               'new_score': m,
+               'new_generation': g}
+
+
+def generate_path(data_arg, gen):
+    total_score = 0
+    for path, word in data_arg:
+        total_score += LEN_TO_SCORE[len(word)]
+        yield {'new_generation': gen,
+               'new_word_coords': path,
+               'new_score': total_score,
+               'new_word': word}
+
+
+def generate_path_gif(logbook, output_file):
+    grids = [generation['best'] for generation in logbook.chapters['boards']]
+    best_grid_string = grids[-1]
+    path_fig, path_line, path_letters, path_anns = init_grid_figure(best_grid_string)
+    grid = generate_grid_list(best_grid_string)
+    data = [(path, word) for path, word in recurse_grid(grid)]
+    line_ani = animation.FuncAnimation(path_fig, update_grid, frames=len(data), fargs=(
+        path_line, path_letters, path_anns, itertools.cycle(generate_path(data, len(grids)))), repeat=True)
+    line_ani.save(output_file, writer="imagemagick", fps=10)
+
+
+def generate_evolution_gif(logbook, output_file):
+    grid_fig, grid_line, grid_letters, grid_anns = init_grid_figure()
+
+    grid_ani = animation.FuncAnimation(grid_fig, update_grid,
+                                       fargs=(grid_line, grid_letters, grid_anns, itertools.cycle(prop_gen(logbook))),
+                                       repeat=True)
+    grid_ani.save(output_file, writer="imagemagick", fps=4)
 
 
 def get_best_board(stats):

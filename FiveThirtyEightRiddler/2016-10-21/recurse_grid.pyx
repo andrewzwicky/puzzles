@@ -5,6 +5,7 @@ BOARD_SIZE = 4
 MIN_WORD_LEN = 3
 END = '_end_'
 
+
 class TrieMembership(IntEnum):
     invalid = 1
     prefix = 2
