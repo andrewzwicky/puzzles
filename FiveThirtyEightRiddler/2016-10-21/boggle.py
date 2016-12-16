@@ -231,7 +231,7 @@ def simulate(population=200,
     toolbox.register("individual", tools.initRepeat, creator.Board, toolbox.letter, n=BOARD_SIZE ** 2)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", total_grid_score)
-    toolbox.register("mate", tools.cxOnePoint)
+    toolbox.register("mate", tools.cxTwoPoint)
     toolbox.register("mutate", mutate_grid, indpb=letter_mutate_prob)
     toolbox.register("select", tools.selTournament, tournsize=tournament_size)
 
