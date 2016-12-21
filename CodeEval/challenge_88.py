@@ -1,47 +1,117 @@
-import sys
-from collections import namedtuple
-from pprint import pprint
+import re
 
 
-def match(circ, jug_h, jug_e, jug_p):
-    return circ.h * jug_h + circ.e * jug_e + circ.p * jug_p
+juggler_re = re.compile("J J(\d) H:(\d) E:(\d) P:(\d) ((C\d,?)+)")
+circuit_re = re.compile("C C(\d) H:(\d) E:(\d) P:(\d)")
+
+
+class Juggler(object):
+    def __init__(self, i, h, e, p, desired_circuits):
+        self.id = i
+        self.h = h
+        self.e = e
+        self.p = p
+        self.desired_circuits = desired_circuits
+        self.scores = []
+
+    def __repr__(self):
+        return "{{{} {} {} {} {}}}".format(self.h, self.e, self.p, [c.id for c in self.desired_circuits], self.scores)
+
+    def score(self):
+        self.scores = [match(circuit, self) for circuit in self.desired_circuits]
+
+    def print_scores(self):
+        circ_scores = ' '.join(
+            "C{}:{}".format(circ.id, score) for circ, score in zip(self.desired_circuits, self.scores))
+        return "J{} {}".format(self.id, circ_scores)
+
+    def circuit_index(self, circuit):
+        return self.desired_circuits.index(circuit)
+
+
+class Circuit(object):
+    def __init__(self, i, h, e, p, assigned_jugglers=None):
+        self.id = i
+        self.h = h
+        self.e = e
+        self.p = p
+        if assigned_jugglers is None:
+            self.assigned_jugglers = []
+        else:
+            self.assigned_jugglers = assigned_jugglers
+
+    def __repr__(self):
+        return "{} {} {} {}".format(self.h, self.e, self.p, self.assigned_jugglers)
+
+    def print_scores(self):
+        jugg_scores = ', '.join(jugg.print_scores() for jugg in self.assigned_jugglers)
+        return "C{} {}".format(self.id, jugg_scores)
+
+    def get_juggler_scores(self):
+        return [j.scores[j.circuit_index(self)] for j in self.assigned_jugglers]
+
+
+def match(circuit, juggler):
+    return circuit.h * juggler.h + circuit.e * juggler.e + circuit.p * juggler.p
+
+
+def parse_line(line):
+    jugg_match = juggler_re.match(line)
+    circuit_match = circuit_re.match(line)
+
+    if jugg_match:
+        i = int(jugg_match.group(1))
+        h = int(jugg_match.group(2))
+        e = int(jugg_match.group(3))
+        p = int(jugg_match.group(4))
+        circuits = list(map(int, jugg_match.group(5).replace("C", "").split(',')))
+        return Juggler(i, h, e, p, circuits)
+
+    if circuit_match:
+        i = int(circuit_match.group(1))
+        h = int(circuit_match.group(2))
+        e = int(circuit_match.group(3))
+        p = int(circuit_match.group(4))
+        return Circuit(i, h, e, p)
+
+
+def perform_assignments(jugglers, circuits):
+    """
+    In fact we want to match jugglers to circuits such that no juggler could switch
+    to a circuit that they prefer more than the one they are assigned to and be a
+    better fit for that circuit than one of the other jugglers assigned to it."
+    """
+    num_circuits = len(circuits)
+    num_jugglers = len(jugglers)
+    jugglers_per_circuit = num_jugglers // num_circuits
+
+    while jugglers:
+        juggler = sorted(jugglers, key=lambda x: max(x.scores))[0]
+        circ_index = juggler.scores.index(max(juggler.scores))
+        juggler.desired_circuits[circ_index].assigned_jugglers.append(juggler)
+        jugglers.remove(juggler)
+
+    return circuits
 
 
 def challenge(input_string):
-    juggler = namedtuple('juggler', ['h', 'e', 'p', 'des_circuits'])
-    circuit = namedtuple('circuit', ['h', 'e', 'p', 'assigned_jugglers'])
+    jugglers = []
+    circuits = []
 
-    circuits = {}
-    jugglers = {}
-    for line in input_string:
-        if line.startswith('J'):
-            j, name, h, e, p, des_circs = line.split(' ')
-            H = int(h.replace('H:', ''))
-            E = int(e.replace('E:', ''))
-            P = int(p.replace('P:', ''))
-            circs = des_circs.strip().split(',')
-            jugglers[name] = juggler(H, E, P, list(zip(circs, [match(circuits[name], H, E, P) for name in circs])))
-        if line.startswith('C'):
-            c, name, h, e, p = line.split(' ')
-            H = int(h.replace('H:', ''))
-            E = int(e.replace('E:', ''))
-            P = int(p.replace('P:', ''))
-            circuits[name] = circuit(H, E, P, {})
+    for line in input_string.split("\n"):
+        output = parse_line(line)
+        if type(output) == Circuit:
+            circuits.append(output)
+        if type(output) == Juggler:
+            jugglers.append(output)
 
-    circuit_scores_sorted = {c_key: [] for c_key in circuits.keys()}
+    circuits.sort(key=lambda x: x.id)
+    jugglers.sort(key=lambda x: x.id)
 
-    for name, props in jugglers.items():
-        for c_name, score in props.des_circuits:
-            circuit_scores_sorted[c_name].append(score)
+    for juggler in jugglers:
+        juggler.desired_circuits = [circuits[i] for i in juggler.desired_circuits]
+        juggler.score()
 
-    for scores in circuit_scores_sorted.values():
-        scores = sorted(scores)
+    circuits = perform_assignments(jugglers, circuits)
 
-    for name_j, juggler in jugglers.items():
-        return ','.join(score for name, score in sorted(juggler.des_circuits, key=lambda x: x[0]))
-
-
-if __name__ == "__main__":
-    with open(sys.argv[1], 'r') as test_cases:
-        for test in test_cases:
-            print(challenge(test))
+    return circuits
