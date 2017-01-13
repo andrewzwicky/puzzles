@@ -64,8 +64,11 @@ def recurse_grid_internal(grid, path, current_word, words_trie, found_words):
                 new_letter = new_letter if new_letter != 'q' else 'qu'
                 new_word = current_word + new_letter
                 if trie_member(words_trie, new_word) != TrieMembership.invalid:
-                    for (next_path, next_word) in recurse_grid_internal(grid, list(path) + [(nx, ny)], new_word, words_trie,
-                                                               found_words):
+                    for (next_path, next_word) in recurse_grid_internal(grid,
+                                                                        list(path) + [(nx, ny)],
+                                                                        new_word,
+                                                                        words_trie,
+                                                                        found_words):
                         yield (next_path, next_word)
 
 

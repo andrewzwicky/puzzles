@@ -13,7 +13,6 @@ from recurse_grid import BOARD_SIZE
 import matplotlib.animation as animation
 
 
-
 # noinspection PyArgumentList
 LEN_TO_SCORE = defaultdict(lambda: 11, {0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 2, 6: 3, 7: 5, 8: 11})
 
