@@ -1,4 +1,4 @@
-from unittest import TestCase
+import unittest
 from CodeEval.challenge_88 import challenge, Circuit, Juggler
 
 
@@ -6,6 +6,7 @@ test_case = """
 C C0 H:7 E:7 P:10
 C C1 H:2 E:1 P:1
 C C2 H:7 E:6 P:4
+
 J J0 H:3 E:9 P:2 C2,C0,C1
 J J1 H:4 E:3 P:7 C0,C2,C1
 J J2 H:4 E:0 P:10 C0,C2,C1
@@ -36,13 +37,24 @@ J9 = Juggler(9, 10, 2, 1, [C1, C2, C0])
 J10 = Juggler(10, 6, 4, 5, [C0, C2, C1])
 J11 = Juggler(11, 8, 4, 7, [C0, C1, C2])
 
-C0.assigned_jugglers = [J6, J3, J10, J0]
-C1.assigned_jugglers = [J9, J8, J7, J1]
-C2.assigned_jugglers = [J5, J11, J2, J4]
-
-output = [C0, C1, C2]
+C0.assigned_jugglers = sorted([J6, J3, J10, J0], key=lambda j: j.i)
+C1.assigned_jugglers = sorted([J9, J8, J7, J1], key=lambda j: j.i)
+C2.assigned_jugglers = sorted([J5, J11, J2, J4], key=lambda j: j.i)
 
 
-class ChallengeTest(TestCase):
-    def test_input_1(self):
-        self.assertListEqual(output, challenge(test_case))
+class ChallengeTest(unittest.TestCase):
+    def test_C0(self):
+        circuits = challenge(test_case)
+        self.assertListEqual(C0.assigned_jugglers, circuits[0].assigned_jugglers)
+
+    def test_C1(self):
+        circuits = challenge(test_case)
+        self.assertListEqual(C1.assigned_jugglers, circuits[1].assigned_jugglers)
+
+    def test_C2(self):
+        circuits = challenge(test_case)
+        self.assertListEqual(C2.assigned_jugglers, circuits[2].assigned_jugglers)
+
+
+if __name__ == "__main__":
+    unittest.main()
