@@ -5,20 +5,26 @@ We know we need to have this die — there is no question about it
 simple game: We keep rolling our new purchase until one roll shows
 a number smaller than the one before. Suppose I give you a dollar
 every time you roll. How much money do you expect to win?
+
+Extra credit:
+What happens to the amount of money as the number of sides increases?
 """
 
 import random
 from collections import Counter
 from matplotlib import pyplot as plt
+import multiprocessing
 import itertools
+
+TOTAL = 10000000
 
 
 def simulate_rolls(dice_size):
-    last_roll = random.randint(1,dice_size)
+    last_roll = random.randint(1, dice_size)
     number_of_rolls = 1
 
     while True:
-        this_roll = random.randint(1,dice_size)
+        this_roll = random.randint(1, dice_size)
         number_of_rolls += 1
         if this_roll < last_roll:
             break
@@ -27,7 +33,17 @@ def simulate_rolls(dice_size):
 
     return number_of_rolls
 
-#print(Counter(simulate_rolls(100) for _ in range(1000000)))
-#res = Counter({2: 494883, 3: 333562, 4: 127529, 5: 34764, 6: 7581, 7: 1426, 8: 213, 9: 38, 10: 4})
-plt.plot([2,3,4,5,6,7,8,9,10],list(itertools.accumulate([494883, 333562,127529,34764,7581,1426,213,38,4])))
+
+pool = multiprocessing.Pool()
+
+for dice in [10, 100, 200, 500, 1000]:
+    res = Counter(pool.map(simulate_rolls, [dice for _ in range(TOTAL)]))
+
+    plt.plot(list(res.keys()),
+             list(count / TOTAL for count in itertools.accumulate(res.values())),
+             marker=".",
+             markersize=10,
+             label=dice)
+
+plt.legend()
 plt.show()
