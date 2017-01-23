@@ -4,3 +4,4 @@ ACM-ICPC/.*?/secret/.*?
 .*?__pycache__.*?
 .*pkl$
 .*?\.idea/.*?
+.*?\.cache/.*?

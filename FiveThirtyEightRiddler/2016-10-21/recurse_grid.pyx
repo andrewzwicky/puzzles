@@ -19,9 +19,27 @@ def dictionary_gen():
 
 
 def neighbors(x, y):
-    # range has to be +1 because range is not inclusive on end
-    for nx in range(max(0, x - 1), min(x + 2, BOARD_SIZE)):
-        for ny in range(max(0, y - 1), min(y + 2, BOARD_SIZE)):
+    if not 0 <= x < BOARD_SIZE or not 0 <= y < BOARD_SIZE:
+        raise ValueError("square not within board")
+
+    """
+    x is the x index of the supplied square.  To cover squares to
+    the left and right, we should go from x-1 to x+1.  Because
+    the range() function is not inclusive on the upper bound,
+    we'll need to go to x+2.
+
+    To prevent returning squares that are outside the board, the
+    range should be capped at 0 and BOARD_SIZE.
+    """
+
+    lower_x = max(0, x - 1)
+    upper_x = min(x + 2, BOARD_SIZE)
+
+    lower_y = max(0, y - 1)
+    upper_y = min(y + 2, BOARD_SIZE)
+
+    for nx in range(lower_x, upper_x):
+        for ny in range(lower_y, upper_y):
             yield (nx, ny)
 
 
