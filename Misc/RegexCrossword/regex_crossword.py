@@ -1,4 +1,5 @@
 import itertools
+import re
 
 
 class Hex(object):
@@ -12,53 +13,55 @@ class Hex(object):
         return "{:<2},{:<2},{:<2}: {}".format(self.x, self.y, self.z, self.contents)
 
 
-X_REGEXES = [
-    ".*H.*H.*",
-    "(DI|NS|TH|OM)*",
-    "F.*[AO].*[AO].*",
-    "(O|RHH|MM)*",
-    ".*",
-    "C*MC(CCC|MM)*",
-    "[^C]*[^R]*III.*",
-    "(...?)\1*",
-    "([^X]|XCC)*",
-    "(RR|HHH)*.?",
-    "N.*X.X.X.*E",
-    "R*D*M*",
-    ".(C|HH)*"
-]
+X_REGEXES = {
+    -6: ".*G.*V.*H.*",
+    -5: "[CR]*",
+    -4: ".*XEXM*",
+    -3: ".*DD.*CCM.*",
+    -2: ".*XHCR.*X.*",
+    -1: ".*(.)(.)(.)(.)\4\3\2\1.*",
+     0: ".*(IN|SE|HI)",
+     1: "[^C]*MMM[^C]*",
+     2: ".*(.)C\1X\1.*",
+     3: "[CEIMU]*OH[AEMOR]*",
+     4: "(RX|[^R])*",
+     5: "[^M]*M[^M]*",
+     6: "(S|MM|HHH)*"
+}
 
-Y_REGEXES = [
-    ".*H.*H.*",
-    "(DI|NS|TH|OM)*",
-    "F.*[AO].*[AO].*",
-    "(O|RHH|MM)*",
-    ".*",
-    "C*MC(CCC|MM)*",
-    "[^C]*[^R]*III.*",
-    "(...?)\1*",
-    "([^X]|XCC)*",
-    "(RR|HHH)*.?",
-    "N.*X.X.X.*E",
-    "R*D*M*",
-    ".(C|HH)*"
-]
+Y_REGEXES = {
+    -6: ".*SE.*UE.*",
+    -5: ".*LR.*RL.*",
+    -4: ".*OXR.*",
+    -3: "([^EMC]|EM)*",
+    -2: "(HHX|[^HX])*",
+    -1: ".*PRR.*DDC.*",
+     0: ".*",
+     1: "[AM]*CM(RC)*R?",
+     2: "([^MC]|MM|CC)*",
+     3: "(E|CR|MN)*",
+     4: "P+(..)\1.*",
+     5: "[CHMNOR]*I[CHMNOR]*",
+     6: "(ND|ET|IN)[^X]*"
+}
 
-Z_REGEXES = [
-    ".*H.*H.*",
-    "(DI|NS|TH|OM)*",
-    "F.*[AO].*[AO].*",
-    "(O|RHH|MM)*",
-    ".*",
-    "C*MC(CCC|MM)*",
-    "[^C]*[^R]*III.*",
-    "(...?)\1*",
-    "([^X]|XCC)*",
-    "(RR|HHH)*.?",
-    "N.*X.X.X.*E",
-    "R*D*M*",
-    ".(C|HH)*"
-]
+Z_REGEXES = {
+    -6: ".*H.*H.*",
+    -5: "(DI|NS|TH|OM)*",
+    -4: "F.*[AO].*[AO].*",
+    -3: "(O|RHH|MM)*",
+    -2: ".*",
+    -1: "C*MC(CCC|MM)*",
+     0: "[^C]*[^R]*III.*",
+     1: "(...?)\1*",
+     2: "([^X]|XCC)*",
+     3: "(RR|HHH)*.?",
+     4: "N.*X.X.X.*E",
+     5: "R*D*M*",
+     6: ".(C|HH)*"
+}
+    
+    
 class HexGrid(object):
     def __init__(self, size, x_regexes, y_regexes, z_regexes):
         self.size = size
@@ -84,7 +87,22 @@ class HexGrid(object):
     def get_z_row(self, index):
         # sort by y
         return [h.contents for h in sorted(self.hexes, key=lambda h: h.y) if h.z == index]
+    
+    def set_contents(self, x, y, new_contents):
+        hex = next((h for h in self.hexes if h.x == x and h.y == y), None)
+        if hex is None:
+            raise ValueError
+        else:
+            hex.contents =  new_contents
+    
+    def validate_x_row(self, index):
+        return re.match(self.x_regexes[index], "".join(self.get_x_row(index)))
+        
+    def validate_y_row(self, index):
+        return re.match(self.y_regexes[index], "".join(self.get_y_row(index)))
+        
+    def validate_z_row(self, index):
+        return re.match(self.z_regexes[index], "".join(self.get_z_row(index)))
 
 if __name__ == "__main__":
-    g = HexGrid(13)
-
+    g = HexGrid(13, X_REGEXES, Y_REGEXES, Z_REGEXES)
