@@ -39,12 +39,13 @@ def simulate(_):
 
 
 if __name__ == "__main__":
-    p = Pool()
-    results = p.map(simulate, range(10000000))
-    print(Counter(results))
-    # x = list(range(10, 51, 2))
-    # first_odds = list(itertools.accumulate(binomial(0.5, 10, n) for n in x))
-    # plt.plot(x, first_odds)
-    # plt.plot([n+1 for n in x], first_odds)
-    # plt.show()
+    # p = Pool()
+    # results = p.map(simulate, range(10000000))
+    # print(Counter(results))
+    odds = list(itertools.accumulate(binomial(0.5, 10, n) for n in range(10, 101)))
+    odds_shift = [0] + odds[0:-1]
+    odds_diff = [a-b for a, b in zip(odds, odds_shift)]
+    plt.plot(*zip(*enumerate(odds_diff)))
+    plt.show()
+    print("done")
 
