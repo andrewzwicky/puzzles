@@ -261,7 +261,7 @@ def generate_trie_gif(output_file):
     print([w for p, w, m in data[0:gif_frames] if m == TrieMembership.word])
     line_ani = animation.FuncAnimation(path_fig, update_trie_fig, frames=gif_frames,
                                        fargs=(path_line, graph, graph_axes, itertools.cycle(data[0:gif_frames])), repeat=True)
-    line_ani.save(output_file, writer="imagemagick", fps=1)
+    line_ani.save(output_file, writer="imagemagick", fps=3)
 
 
 def recurse_grid_internal(grid, path, current_word, words_trie, found_words, debug=False):
