@@ -1,7 +1,7 @@
 from enum import IntEnum
 
 
-BOARD_SIZE = 4
+BOARD_SIZE = 3
 MIN_WORD_LEN = 3
 END = '_end_'
 
@@ -26,14 +26,17 @@ def make_trie(words):
         for letter in word:
             # as the letters get counted, traverse further into the dict
             # if the key does not exist, it will be created.  Otherwise
-            # current_dict will just move deeper into the dictionary
+            # current_dict will just move deeper into the dictionary.
             current_dict = current_dict.setdefault(letter, {})
-        # add the END key at the deepest level to signal that this string is a word
+        # add the END key at the deepest node for this word
+        # to signal that this string is a word.
         current_dict[END] = END
     return root
 
 ALL_WORD_TRIE = make_trie(word for word in dictionary_gen() if len(word) >= MIN_WORD_LEN)
 
+
+# This is a cache of all the lookups so far, to speed up repeated queries to the trie.
 TRIE_MEMBERS = dict()
 
 
@@ -52,13 +55,16 @@ def trie_member(trie, word):
                 # attempt to follow the letters through the trie dict
                 current_dict = current_dict[letter]
             except KeyError:
-                # once a key is not found, this means there is no longer a valid
+                # once a key is not found, this means this word is not in the trie
                 TRIE_MEMBERS[word] = TrieMembership.invalid
                 return TRIE_MEMBERS[word]
         if END in current_dict:
+            # If END is found, this string is a full word in our original dictionary
             TRIE_MEMBERS[word] = TrieMembership.word
             return TRIE_MEMBERS[word]
         else:
+            # If all letters are still in the trie, but this is not a full word,
+            # it means there are words that start with this string.
             TRIE_MEMBERS[word] = TrieMembership.prefix
             return TRIE_MEMBERS[word]
 
@@ -96,29 +102,39 @@ def recurse_grid(grid):
         yield (path, word)
 
 
-def recurse_grid_internal(grid, path, current_word, words_trie, found_words):
+def recurse_grid_internal(grid, path, current_word, words_trie, found_words, debug=False):
     # path should be empty on the initial call
     if not path:
-        # This is the initial call to ensure that we start a search from each square in the grid.
+        # This is the initial call to ensure that a search
+        # starts from each square in the grid.
         for y, row in enumerate(grid):
             for x, letter in enumerate(row):
-                for (next_path, next_word) in recurse_grid_internal(grid, [(x, y)], letter, words_trie, found_words):
-                    yield (next_path, next_word)
+                for this in recurse_grid_internal(grid,
+                                                                    [(x, y)],
+                                                                    letter,
+                                                                    words_trie,
+                                                                    found_words):
+                    yield tuple(this)
 
         return
-    # path is a list of squares, so the last one in the list is our current position in the grid
+    # path is a list of coordinates, so the last one
+    # in the list is our current position in the grid
     current_position = path[-1]
 
     # test to see how our word is contained in the word list
     membership = trie_member(words_trie, current_word)
-
-    # We have found a new word from our list and should yield the current path and the word
+    if debug:
+        yield (path, current_word, membership)
+    # We have found a new word from our list and
+    # should yield the current path and the word
     if membership == TrieMembership.word and current_word not in found_words:
         found_words.add(current_word)
-        yield (path, current_word)
+        if not debug:
+            yield (path, current_word)
 
-    # If it's not a full word, but a prefix to one or more words in the list, continue searching by moving
-    # to a neighbor and adding that letter to the current word.
+    # If it's not a full word, but a prefix to one or more words in the
+    # list, continue searching by moving to a neighbor
+    # and adding that letter to the current word.
     if membership >= TrieMembership.prefix:
         for nx, ny in neighbors(*current_position):
             # the same square can only be used in each word once
@@ -131,13 +147,14 @@ def recurse_grid_internal(grid, path, current_word, words_trie, found_words):
                 # add the letter on the newest cube to the current word.
                 new_word = current_word + new_letter
 
-                # if the new word is either a word or prefix, continue recursively searching from that new square.
+                # if the new word is either a word or prefix,
+                # continue recursively searching from that new square.
                 if trie_member(words_trie, new_word) != TrieMembership.invalid:
-                    for (next_path, next_word) in recurse_grid_internal(grid,
-                                                                        list(path) + [(nx, ny)],
+                    for this in recurse_grid_internal(grid,
+                                                                        path + [(nx, ny)],
                                                                         new_word,
                                                                         words_trie,
                                                                         found_words):
-                        yield (next_path, next_word)
+                        yield tuple(this)
 
 
