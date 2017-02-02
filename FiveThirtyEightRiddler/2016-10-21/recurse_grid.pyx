@@ -32,7 +32,7 @@ def make_trie(words):
         current_dict[END] = END
     return root
 
-ALL_WORD_TRIE = make_trie(word for word in dictionary_gen() if len(word) > MIN_WORD_LEN)
+ALL_WORD_TRIE = make_trie(word for word in dictionary_gen() if len(word) >= MIN_WORD_LEN)
 
 TRIE_MEMBERS = dict()
 
