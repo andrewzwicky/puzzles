@@ -1,7 +1,6 @@
 from enum import IntEnum
 
-
-BOARD_SIZE = 3
+BOARD_SIZE = 4
 MIN_WORD_LEN = 3
 END = '_end_'
 
@@ -33,8 +32,8 @@ def make_trie(words):
         current_dict[END] = END
     return root
 
-ALL_WORD_TRIE = make_trie(word for word in dictionary_gen() if len(word) >= MIN_WORD_LEN)
 
+ALL_WORD_TRIE = make_trie(word for word in dictionary_gen() if len(word) >= MIN_WORD_LEN)
 
 # This is a cache of all the lookups so far, to speed up repeated queries to the trie.
 TRIE_MEMBERS = dict()
@@ -94,27 +93,25 @@ def neighbors(x, y):
             yield (nx, ny)
 
 
+def recurse_grid(grid, full_output=False):
+    for result in recurse_grid_internal(grid, list(), "", ALL_WORD_TRIE, set(), full_output):
+        yield result
 
 
-
-def recurse_grid(grid):
-    for (path, word) in recurse_grid_internal(grid, list(), "", ALL_WORD_TRIE, set()):
-        yield (path, word)
-
-
-def recurse_grid_internal(grid, path, current_word, words_trie, found_words, debug=False):
+def recurse_grid_internal(grid, path, current_word, words_trie, found_words, full_output=False):
     # path should be empty on the initial call
     if not path:
         # This is the initial call to ensure that a search
         # starts from each square in the grid.
         for y, row in enumerate(grid):
             for x, letter in enumerate(row):
-                for this in recurse_grid_internal(grid,
-                                                                    [(x, y)],
-                                                                    letter,
-                                                                    words_trie,
-                                                                    found_words):
-                    yield tuple(this)
+                for next_result in recurse_grid_internal(grid,
+                                                         [(x, y)],
+                                                         letter,
+                                                         words_trie,
+                                                         found_words,
+                                                         full_output):
+                    yield next_result
 
         return
     # path is a list of coordinates, so the last one
@@ -123,14 +120,14 @@ def recurse_grid_internal(grid, path, current_word, words_trie, found_words, deb
 
     # test to see how our word is contained in the word list
     membership = trie_member(words_trie, current_word)
-    if debug:
+    if full_output:
         yield (path, current_word, membership)
     # We have found a new word from our list and
     # should yield the current path and the word
     if membership == TrieMembership.word and current_word not in found_words:
         found_words.add(current_word)
-        if not debug:
-            yield (path, current_word)
+        if not full_output:
+            yield (path, current_word, membership)
 
     # If it's not a full word, but a prefix to one or more words in the
     # list, continue searching by moving to a neighbor
@@ -150,11 +147,10 @@ def recurse_grid_internal(grid, path, current_word, words_trie, found_words, deb
                 # if the new word is either a word or prefix,
                 # continue recursively searching from that new square.
                 if trie_member(words_trie, new_word) != TrieMembership.invalid:
-                    for this in recurse_grid_internal(grid,
-                                                                        path + [(nx, ny)],
-                                                                        new_word,
-                                                                        words_trie,
-                                                                        found_words):
-                        yield tuple(this)
-
-
+                    for next_result in recurse_grid_internal(grid,
+                                                             path + [(nx, ny)],
+                                                             new_word,
+                                                             words_trie,
+                                                             found_words,
+                                                             full_output):
+                        yield next_result
