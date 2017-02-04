@@ -1,5 +1,4 @@
 import pyximport
-
 pyximport.install()
 from collections import defaultdict
 import string
@@ -10,7 +9,7 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy
 import itertools
-from recurse_grid import recurse_grid, BOARD_SIZE, TrieMembership
+from recurse_grid import recurse_grid, BOARD_SIZE, NUM, TrieMembership, make_trie, END
 import matplotlib.animation as animation
 import networkx as nx
 
@@ -21,6 +20,8 @@ WORD_KEY = 'Word'
 
 ANNOT_FORMAT = "{name}: {value}"
 
+LAYOUT = nx.fruchterman_reingold_layout
+
 
 def init_boggle_board_axis(ax, input_string):
     letter_color = "#0495A8"
@@ -30,6 +31,7 @@ def init_boggle_board_axis(ax, input_string):
 
     ax.set_axis_bgcolor('#E6E3DB')
 
+    [sp.set_visible(False) for sp in ax.spines.values()]
     ax.set_ylim(0, BOARD_SIZE)
     ax.set_xlim(0, BOARD_SIZE)
     ax.set_xticklabels([])
@@ -74,16 +76,17 @@ def init_boggle_board_axis(ax, input_string):
     return line, letters, annotations
 
 
-def init_trie_axis(ax, edges, pos, node_to_letter):
-    graph = nx.Graph(edges)
-    nx.draw_networkx_nodes(graph, ax=ax, pos=pos, node_size=450, node_color="w", nodelist=graph.nodes())
-    nx.draw_networkx_labels(graph, pos, node_to_letter, font_size=14)
-    nx.draw_networkx_edges(graph, pos)
+def init_trie_axis(ax, edges, node_to_letter):
+    graph = nx.Graph(list(edges))
+    pos = LAYOUT(graph)
+    nx.draw_networkx(graph, ax=ax, pos=pos, labels=node_to_letter, font_size=14, node_size=450, node_color="w",
+                     edge_color='k')
 
+    [sp.set_visible(False) for sp in ax.spines.values()]
     ax.set_xticklabels([])
     ax.set_yticklabels([])
     ax.tick_params(axis='both', which='both', bottom='off', top='off', left='off', right='off')
-    return graph
+    return graph, pos
 
 
 # endregion
@@ -100,27 +103,29 @@ def boggle_board_only_figure(input_string=None):
     return fig, line, letters, annotations
 
 
-def boggle_trie_figure(input_string, edges, pos, node_to_letter):
+def boggle_trie_figure(input_string, edges, node_to_letter):
     fig = plt.figure(figsize=(12, 6), facecolor="#FFFFFF")
     board_axis = plt.subplot2grid((1, 2), (0, 0), axisbg='#E6E3DB')
     trie_axis = plt.subplot2grid((1, 2), (0, 1))
 
     line, letters, annotations = init_boggle_board_axis(board_axis, input_string)
-    graph = init_trie_axis(trie_axis, edges, pos, node_to_letter)
+    graph, pos = init_trie_axis(trie_axis, edges, node_to_letter)
 
     plt.subplots_adjust(wspace=0, hspace=0)
 
-    return fig, line, letters, annotations, trie_axis, graph
+    return fig, line, letters, annotations, trie_axis, graph, pos
 
 
 # endregion
 
 # region animation figure update methods
-def update_animation_figure_wrapper(_, line, letters, annotations, graph, graph_axis, update_dict_generator):
+def update_animation_figure_wrapper(frame_num, line, letters, annotations, graph, graph_axis, node_to_letter,
+                                    update_dict_generator):
+    print("rendering frame {}".format(frame_num))
     output = next(update_dict_generator)
     update_boggle_axis(line, letters, annotations, **output)
     if graph is not None:
-        update_trie_axis(graph, graph_axis, **output)
+        update_trie_axis(graph, graph_axis, node_to_letter, **output)
 
 
 def update_boggle_axis(line,
@@ -155,20 +160,26 @@ def update_boggle_axis(line,
     plt.draw()
 
 
-def update_trie_axis(graph, graph_axis, membership=None, trie=None, pos=None, new_word=None, **kwargs):
-    if membership is None or trie is None or pos is None or new_word is None:
+def update_trie_axis(graph, graph_axis, node_to_letter, membership=None, pos=None, trie=None, new_word=None, **kwargs):
+    if membership is None or trie is None or new_word is None or pos is None:
         raise ValueError
 
     nodes = [0]
     root = trie
     for letter in new_word:
         try:
-            nodes.append(root[letter]["num"])
+            nodes.append(root[letter][NUM])
             root = root[letter]
         except KeyError:
             break
 
-    nx.draw_networkx_nodes(graph, ax=graph_axis, pos=pos, node_size=450, node_color="w", nodelist=graph.nodes())
+    for _ in range(len(graph_axis.collections)):
+        del graph_axis.collections[0]
+
+    for _ in range(len(graph_axis.texts)):
+        del graph_axis.texts[0]
+
+    plt.draw()
 
     if membership == TrieMembership.invalid:
         color = "r"
@@ -177,10 +188,15 @@ def update_trie_axis(graph, graph_axis, membership=None, trie=None, pos=None, ne
     else:
         color = "y"
 
-    nx.draw_networkx_nodes(graph, ax=graph_axis, pos=pos, node_size=450, node_color=color, nodelist=nodes)
-    plt.draw()
+    colors = [color if node in nodes else 'w' for node in graph.nodes()]
+    edge_colors = [color if edge in list(zip(nodes, nodes[1:])) else 'k' for edge in graph.edges()]
+
+    nx.draw_networkx(graph, ax=graph_axis, pos=pos, labels=node_to_letter, font_size=14, node_size=450,
+                     node_color=colors, edge_color=edge_colors, width=5)
+
 
 # endregion
+
 
 # region animation helper methods
 def word_coord_to_plot_coord(coord):
@@ -216,6 +232,7 @@ def generate_trie_annotations(data_arg, trie, pos):
                'new_word': word,
                'trie': trie,
                'pos': pos}
+
 
 # endregion
 
@@ -263,8 +280,6 @@ def generate_path_gif(logbook, output_file):
                                        fargs=(line,
                                               letters,
                                               annotations,
-                                              None,
-                                              None,
                                               itertools.cycle(generate_path_annotations(data, len(data)))),
                                        repeat=True)
 
@@ -279,159 +294,21 @@ def generate_evolution_gif(logbook, output_file):
                                        fargs=(line,
                                               letters,
                                               annotations,
-                                              None,
-                                              None,
                                               itertools.cycle(generate_evolution_annotations(logbook))),
                                        repeat=True)
     grid_ani.save(output_file, writer="imagemagick", fps=4)
 
 
 def generate_trie_gif(logbook, output_file):
-    # region data
-    EDGES = [(0, 1),
-             (0, 2),
-             (1, 3),
-             (1, 4),
-             (2, 5),
-             (2, 6),
-             (2, 7),
-             (2, 8),
-             (3, 9),
-             (3, 10),
-             (4, 11),
-             (4, 12),
-             (4, 13),
-             (5, 14),
-             (5, 15),
-             (6, 16),
-             (6, 17),
-             (6, 18),
-             (6, 19),
-             (6, 20),
-             (7, 21),
-             (8, 22),
-             (8, 23),
-             (11, 24),
-             (11, 25),
-             (12, 26),
-             (15, 27),
-             (27, 32),
-             (18, 28),
-             (21, 29),
-             (22, 30),
-             (23, 31),
-             (32, 33)]
-
-    POS = {0: (8, 6),
-           1: (3, 5),
-           2: (8, 2),
-           3: (1, 4),
-           4: (4, 4),
-           5: (4, 1),
-           6: (7, 1),
-           7: (10, 1),
-           8: (12, 1),
-           9: (0, 3),
-           10: (1, 3),
-           11: (3, 3),
-           12: (4, 3),
-           13: (5, 3),
-           14: (3, 0),
-           15: (4, 0),
-           16: (5, 0),
-           17: (6, 0),
-           18: (7, 0),
-           19: (8, 0),
-           20: (9, 0),
-           21: (10, 0),
-           22: (11, 0),
-           23: (12, 0),
-           24: (2, 2),
-           25: (3, 2),
-           26: (4, 2),
-           27: (4, -1),
-           28: (7, -1),
-           29: (10, -1),
-           30: (11, -1),
-           31: (12, -1),
-           32: (4, -2),
-           33: (4, -3)}
-
-    NODE_TO_LETTER = {0: '',
-                      1: 'A',
-                      2: 'S',
-                      3: 'S',
-                      4: 'P',
-                      5: 'A',
-                      6: 'E',
-                      7: 'H',
-                      8: 'P',
-                      9: 'H',
-                      10: 'P',
-                      11: 'E',
-                      12: 'S',
-                      13: 'T',
-                      14: 'E',
-                      15: 'P',
-                      16: 'A',
-                      17: 'L',
-                      18: 'P',
-                      19: 'T',
-                      20: 'X',
-                      21: 'E',
-                      22: 'A',
-                      23: 'O',
-                      24: 'S',
-                      25: 'X',
-                      26: 'E',
-                      27: 'O',
-                      28: 'T',
-                      29: 'A',
-                      30: 'E',
-                      31: 'T',
-                      32: 'T',
-                      33: 'E'}
-
-    NODE_TRIE = {'A': {'P': {'E': {'S': {'_end_': '_end_', 'num': 24},
-                                   'X': {'_end_': '_end_', 'num': 24},
-                                   '_end_': '_end_',
-                                   'num': 11},
-                             'S': {'E': {'_end_': '_end_', 'num': 26}, 'num': 12},
-                             'T': {'_end_': '_end_', 'num': 13},
-                             'num': 4},
-                       'S': {'H': {'_end_': '_end_', 'num': 9},
-                             'P': {'_end_': '_end_', 'num': 10},
-                             'num': 3},
-                       'num': 1},
-                 'S': {'A': {'E': {'_end_': '_end_', 'num': 14},
-                             'P': {'O': {'T': {'E': {'_end_': '_end_', 'num': 33}, 'num': 32},
-                                         'num': 27},
-                                   '_end_': '_end_',
-                                   'num': 15},
-                             'num': 5},
-                       'E': {'A': {'_end_': '_end_', 'num': 16},
-                             'L': {'_end_': '_end_', 'num': 17},
-                             'P': {'T': {'_end_': '_end_', 'num': 28}, 'num': 18},
-                             'T': {'_end_': '_end_', 'num': 19},
-                             'X': {'_end_': '_end_', 'num': 20},
-                             'num': 6},
-                       'H': {'E': {'A': {'_end_': '_end_', 'num': 29},
-                                   '_end_': '_end_',
-                                   'num': 21},
-                             'num': 7},
-                       'P': {'A': {'E': {'_end_': '_end_', 'num': 30},
-                                   '_end_': '_end_',
-                                   'num': 22},
-                             'O': {'T': {'_end_': '_end_', 'num': 31}, 'num': 23},
-                             'num': 8},
-                       'num': 2}}
-    # endregion
-
-    # best_grid_string = logbook.chapters['boards'][-1]['best']
-    best_grid_string = "ASH PEX TOL     "
-    fig, line, letters, annotations, graph_axis, graph = boggle_trie_figure(best_grid_string, EDGES, POS, NODE_TO_LETTER)
+    num_frames = 40
+    best_grid_string = logbook.chapters['boards'][-1]['best']
     best_grid = transform_grid_string_to_list(best_grid_string)
-    data = [(path, word, membership) for path, word, membership in recurse_grid(best_grid)]
+    data = [(path, word, membership) for path, word, membership in recurse_grid(best_grid, full_output=True)]
+    grid_words = [word for path, word, membership in data[:num_frames]]
+    this_grid_trie = make_trie(grid_words)
+    edges, nodes_to_letters = get_trie_information(this_grid_trie, set(), dict())
+    fig, line, letters, annotations, graph_axis, graph, pos = boggle_trie_figure(best_grid_string, edges,
+                                                                                 nodes_to_letters)
     grid_ani = animation.FuncAnimation(fig,
                                        update_animation_figure_wrapper,
                                        fargs=(line,
@@ -439,9 +316,12 @@ def generate_trie_gif(logbook, output_file):
                                               annotations,
                                               graph,
                                               graph_axis,
-                                              itertools.cycle(generate_trie_annotations(data, NODE_TRIE, POS))),
+                                              nodes_to_letters,
+                                              itertools.cycle(
+                                                  generate_trie_annotations(data[:num_frames], this_grid_trie, pos))),
                                        repeat=True)
-    grid_ani.save(output_file, writer="imagemagick", fps=4)
+    grid_ani.save(output_file, writer="imagemagick", fps=2)
+    print("done")
 
 
 # endregion
@@ -646,8 +526,19 @@ def simulate(population=200,
 
 # endregion
 
+
+def get_trie_information(trie, edges, nodes_to_letters):
+    for key in trie:
+        if key not in [END, NUM]:
+            edges.add((trie[NUM], trie[key][NUM]))
+            nodes_to_letters[trie[key][NUM]] = key
+            get_trie_information(trie[key], edges, nodes_to_letters)
+
+    return edges, nodes_to_letters
+
+
 if __name__ == "__main__":
     p, l, h = simulate(population=20, generations=5)
-    #generate_evolution_gif(l, "evo.gif")
-    #generate_path_gif(l, "path.gif")
+    # generate_evolution_gif(l, "evo.gif")
+    # generate_path_gif(l, "path.gif")
     generate_trie_gif(l, "trie.gif")

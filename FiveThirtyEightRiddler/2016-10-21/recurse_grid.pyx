@@ -3,6 +3,7 @@ from enum import IntEnum
 BOARD_SIZE = 4
 MIN_WORD_LEN = 3
 END = '_end_'
+NUM = '_num_'
 
 
 class TrieMembership(IntEnum):
@@ -19,7 +20,10 @@ def dictionary_gen():
 
 
 def make_trie(words):
+    num_nodes = 0
     root = dict()
+    root[NUM] = num_nodes
+    num_nodes += 1
     for word in words:
         current_dict = root
         for letter in word:
@@ -27,6 +31,11 @@ def make_trie(words):
             # if the key does not exist, it will be created.  Otherwise
             # current_dict will just move deeper into the dictionary.
             current_dict = current_dict.setdefault(letter, {})
+
+            if NUM not in current_dict:
+                current_dict[NUM] = num_nodes
+                num_nodes += 1
+
         # add the END key at the deepest node for this word
         # to signal that this string is a word.
         current_dict[END] = END
@@ -37,6 +46,7 @@ ALL_WORD_TRIE = make_trie(word for word in dictionary_gen() if len(word) >= MIN_
 
 # This is a cache of all the lookups so far, to speed up repeated queries to the trie.
 TRIE_MEMBERS = dict()
+
 
 
 def trie_member(trie, word):
@@ -94,6 +104,8 @@ def neighbors(x, y):
 
 
 def recurse_grid(grid, full_output=False):
+    if type(grid) is not list:
+        raise ValueError("grid must be a list")
     for result in recurse_grid_internal(grid, list(), "", ALL_WORD_TRIE, set(), full_output):
         yield result
 
@@ -120,7 +132,7 @@ def recurse_grid_internal(grid, path, current_word, words_trie, found_words, ful
 
     # test to see how our word is contained in the word list
     membership = trie_member(words_trie, current_word)
-    if full_output:
+    if full_output and ' ' not in current_word:
         yield (path, current_word, membership)
     # We have found a new word from our list and
     # should yield the current path and the word
