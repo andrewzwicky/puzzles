@@ -132,7 +132,7 @@ def recurse_grid_internal(grid, path, current_word, words_trie, found_words, ful
 
     # test to see how our word is contained in the word list
     membership = trie_member(words_trie, current_word)
-    if full_output and ' ' not in current_word:
+    if full_output:
         yield (path, current_word, membership)
     # We have found a new word from our list and
     # should yield the current path and the word
@@ -156,13 +156,11 @@ def recurse_grid_internal(grid, path, current_word, words_trie, found_words, ful
                 # add the letter on the newest cube to the current word.
                 new_word = current_word + new_letter
 
-                # if the new word is either a word or prefix,
-                # continue recursively searching from that new square.
-                if trie_member(words_trie, new_word) != TrieMembership.invalid:
-                    for next_result in recurse_grid_internal(grid,
-                                                             path + [(nx, ny)],
-                                                             new_word,
-                                                             words_trie,
-                                                             found_words,
-                                                             full_output):
-                        yield next_result
+                # continue recursively searching from the next square.
+                for next_result in recurse_grid_internal(grid,
+                                                         path + [(nx, ny)],
+                                                         new_word,
+                                                         words_trie,
+                                                         found_words,
+                                                         full_output):
+                    yield next_result
