@@ -1,4 +1,5 @@
 from enum import IntEnum
+import os
 
 BOARD_SIZE = 4
 MIN_WORD_LEN = 3
@@ -13,28 +14,42 @@ class TrieMembership(IntEnum):
 
 
 def dictionary_gen():
-    with open('../../enable1.txt', 'r') as word_list:
+    file_name = os.path.relpath(os.path.join("..", "..", "enable1.txt"))
+    with open(file_name, 'r') as word_list:
         for line in word_list:
             # capitalize all words for consistency, and strip newline character off the end
             yield line.upper().strip()
 
 
 def make_trie(words):
-    num_nodes = 0
+    current_node_number = 0
+    # start with an empty dictionary
     root = dict()
-    root[NUM] = num_nodes
-    num_nodes += 1
+    # the base node will be node 0
+    # each node will have a unique number assigned
+    # to it that is used for drawing the graph later
+    root[NUM] = current_node_number
+    current_node_number += 1
+
     for word in words:
+        # for each word, the addition of the letter nodes
+        # needs to start at the root level again
         current_dict = root
         for letter in word:
-            # as the letters get counted, traverse further into the dict
-            # if the key does not exist, it will be created.  Otherwise
-            # current_dict will just move deeper into the dictionary.
-            current_dict = current_dict.setdefault(letter, {})
+            # if the node for this letter doesn't exist yet, create
+            # and empty dictionary there
+            if letter not in current_dict:
+                current_dict[letter] = {}
 
+            # as the letters get counted, traverse further into the dict
+            # to add the nodes for all the letters
+            current_dict = current_dict[letter]
+
+            # if this node does not have a number already
+            # add one and increment the counter
             if NUM not in current_dict:
-                current_dict[NUM] = num_nodes
-                num_nodes += 1
+                current_dict[NUM] = current_node_number
+                current_node_number += 1
 
         # add the END key at the deepest node for this word
         # to signal that this string is a word.
@@ -46,7 +61,6 @@ ALL_WORD_TRIE = make_trie(word for word in dictionary_gen() if len(word) >= MIN_
 
 # This is a cache of all the lookups so far, to speed up repeated queries to the trie.
 TRIE_MEMBERS = dict()
-
 
 
 def trie_member(trie, word):
@@ -103,7 +117,7 @@ def neighbors(x, y):
             yield (nx, ny)
 
 
-def recurse_grid(grid, full_output=False):
+def recurse_grid_external(grid, full_output=False):
     if type(grid) is not list:
         raise ValueError("grid must be a list")
     for result in recurse_grid_internal(grid, list(), "", ALL_WORD_TRIE, set(), full_output):

@@ -8,7 +8,7 @@ from deap import base, creator, tools
 import matplotlib.pyplot as plt
 import numpy
 import itertools
-from recurse_grid import recurse_grid
+from recurse_grid import recurse_grid_external
 from recurse_grid import BOARD_SIZE
 import matplotlib.animation as animation
 import networkx

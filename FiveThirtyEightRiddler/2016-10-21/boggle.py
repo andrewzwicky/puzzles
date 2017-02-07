@@ -1,4 +1,4 @@
-import pyximport
+import pyximport;
 
 pyximport.install()
 from collections import defaultdict
@@ -10,7 +10,7 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy
 import itertools
-from recurse_grid import recurse_grid, BOARD_SIZE, NUM, TrieMembership, make_trie, END
+from recurse_grid import recurse_grid_external, BOARD_SIZE, NUM, TrieMembership, make_trie, END
 import matplotlib.animation as animation
 import networkx as nx
 from networkx.drawing.nx_agraph import graphviz_layout
@@ -23,6 +23,8 @@ SCORE_KEY = 'Score'
 WORD_KEY = 'Word'
 
 ANNOT_FORMAT = "{name}: {value}"
+
+GRAPH_KWARGS = {"font_size": 12, "node_size": 350}
 
 
 def init_boggle_board_axis(ax, input_string):
@@ -80,9 +82,8 @@ def init_boggle_board_axis(ax, input_string):
 
 def init_trie_axis(ax, edges, node_to_letter):
     graph = nx.Graph(list(edges))
-    pos = graphviz_layout(graph, prog='dot')  # ,  args='-Eweight=0.1 -Enodesep=5.0 -Eminlen=3')
-    nx.draw_networkx(graph, ax=ax, labels=node_to_letter, font_size=12, node_size=350, node_color="w",
-                     edge_color='k')
+    pos = graphviz_layout(graph, prog='dot')
+    # nx.draw_networkx(graph, ax=ax, pos=pos, labels=node_to_letter, node_color="w", edge_color='k', **GRAPH_KWARGS)
 
     [sp.set_visible(False) for sp in ax.spines.values()]
     ax.set_xticklabels([])
@@ -161,7 +162,8 @@ def update_boggle_axis(line,
     plt.draw()
 
 
-def update_trie_axis(graph, graph_axis, node_to_letter, membership=None, pos=None, trie=None, new_word=None, **kwargs):
+def update_trie_axis(graph, graph_axis, node_to_letter, word_nodes, membership=None, pos=None, trie=None, new_word=None,
+                     **kwargs):
     if membership is None or trie is None or new_word is None or pos is None:
         raise ValueError
 
@@ -189,12 +191,14 @@ def update_trie_axis(graph, graph_axis, node_to_letter, membership=None, pos=Non
     else:
         color = "y"
 
-    colors = [color if node in nodes else 'w' for node in graph.nodes()]
+    node_colors = [color if node in nodes else 'w' for node in graph.nodes()]
     edge_colors = [color if edge in list(zip(nodes, nodes[1:])) else 'k' for edge in graph.edges()]
+    linewidths = [2 if n in word_nodes else 1 for n in graph.nodes()]
 
-    nx.draw_networkx(graph, ax=graph_axis, pos=pos, labels=node_to_letter, font_size=18, node_size=500,
-                     node_color=colors, edge_color=edge_colors, width=2)
-
+    nx.draw_networkx(graph, ax=graph_axis, pos=pos, labels=node_to_letter, linewidths=linewidths,
+                     node_color=node_colors,
+                     edge_color=edge_colors,
+                     **GRAPH_KWARGS)
 
 # endregion
 
@@ -202,6 +206,19 @@ def update_trie_axis(graph, graph_axis, node_to_letter, membership=None, pos=Non
 def word_coord_to_plot_coord(coord):
     x, y = coord
     return x + 0.5, BOARD_SIZE - y - 0.5
+
+
+def get_trie_information(trie, edges, word_nodes, nodes_to_letters):
+    for key in trie:
+        if key not in [END, NUM]:
+            edges.add((trie[NUM], trie[key][NUM]))
+            nodes_to_letters[trie[key][NUM]] = key
+            get_trie_information(trie[key], edges, word_nodes, nodes_to_letters)
+
+    if END in trie:
+        word_nodes.add(trie[NUM])
+
+    return edges, word_nodes, nodes_to_letters
 
 
 def generate_path_annotations(data_arg, gen):
@@ -244,7 +261,7 @@ LEN_TO_SCORE = defaultdict(lambda: 11, {0: 0, 1: 0, 2: 0, 3: 1, 4: 1, 5: 2, 6: 3
 def total_grid_score(grid_string):
     grid_string = ''.join(grid_string).upper()
     grid = transform_grid_string_to_list(grid_string)
-    words = set(word for _, word, _ in recurse_grid(grid))
+    words = set(word for _, word, _ in recurse_grid_external(grid))
 
     return sum(LEN_TO_SCORE[word_len] for word_len in map(len, words)),
 
@@ -275,7 +292,7 @@ def generate_path_gif(logbook, output_file):
     best_grid_string = logbook.chapters['boards'][-1]['best']
     fig, line, letters, annotations = boggle_board_only_figure(best_grid_string)
     best_grid = transform_grid_string_to_list(best_grid_string)
-    data = [(path, word, membership) for path, word, membership in recurse_grid(best_grid)]
+    data = [(path, word, membership) for path, word, membership in recurse_grid_external(best_grid)]
     line_ani = animation.FuncAnimation(fig,
                                        update_animation_figure_wrapper,
                                        frames=len(data),
@@ -311,10 +328,10 @@ def generate_trie_gif(logbook, output_file):
     frame_limit = 300
     best_grid_string = logbook.chapters['boards'][-1]['best']
     best_grid = transform_grid_string_to_list(best_grid_string)
-    data = [(path, word, membership) for path, word, membership in recurse_grid(best_grid, full_output=True)]
+    data = [(path, word, membership) for path, word, membership in recurse_grid_external(best_grid, full_output=True)]
     grid_words = [word for path, word, membership in data[:frame_limit] if membership == TrieMembership.word]
     this_grid_trie = make_trie(grid_words)
-    edges, nodes_to_letters = get_trie_information(this_grid_trie, set(), dict())
+    edges, word_nodes, nodes_to_letters = get_trie_information(this_grid_trie, set(), set(), dict())
     fig, line, letters, annotations, graph_axis, graph, pos = boggle_trie_figure(best_grid_string, edges,
                                                                                  nodes_to_letters)
     grid_ani = animation.FuncAnimation(fig,
@@ -340,10 +357,12 @@ def generate_final_board(logbook, output_file):
 
 def generate_generation_scores(logbook, output_file):
     top_scores = [gen['max'] for gen in logbook.chapters['scores']]
+    avg_scores = [gen['avg'] for gen in logbook.chapters['scores']]
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.set_title('top score of each generation')
-    plt.plot(range(len(top_scores)), top_scores)
+    plt.plot(range(len(top_scores)), top_scores, color='r')
+    plt.plot(range(len(avg_scores)), avg_scores, color='k-')
     ax.set_xlabel('generation')
     ax.set_ylabel('score')
 
@@ -557,33 +576,48 @@ def simulate(population=200,
 
 # endregion
 
-
-def get_trie_information(trie, edges, nodes_to_letters):
-    for key in trie:
-        if key not in [END, NUM]:
-            edges.add((trie[NUM], trie[key][NUM]))
-            nodes_to_letters[trie[key][NUM]] = key
-            get_trie_information(trie[key], edges, nodes_to_letters)
-
-    return edges, nodes_to_letters
-
-
 if __name__ == "__main__":
-    pickle_files = [f for f in os.listdir('pickles') if f.startswith('gen')]
-    if pickle_files:
-        highest_gen_file = os.path.join('pickles', max(pickle_files, key=lambda x: int(re.match(".*_(\d+)_.*", x).group(1))))
+    if False:
+        pickle_files = [f for f in os.listdir('pickles') if f.startswith('gen')]
+        if pickle_files:
+            highest_gen_file = os.path.join('pickles',
+                                            max(pickle_files, key=lambda x: int(re.match(".*_(\d+)_.*", x).group(1))))
+        else:
+            highest_gen_file = None
+        print(highest_gen_file)
+        p, l, h = simulate(population=1000000, generations=100, checkpoint=highest_gen_file)
+        generate_evolution_gif(l, "evo.gif")
+        generate_path_gif(l, "path.gif")
+        generate_trie_gif(l, "trie.gif")
+        generate_final_board(l, "final_board.png")
+        generate_generation_scores(l, "scores_over_time.png")
     else:
-        highest_gen_file=None
-    p, l, h = simulate(population=1000000, generations=100, checkpoint=highest_gen_file)
-    generate_evolution_gif(l, "evo.gif")
-    generate_path_gif(l, "path.gif")
-    generate_trie_gif(l, "trie.gif")
-    generate_final_board(l, "final_board.png")
-    generate_generation_scores(l, "scores_over_time.png")
+        words = ["a", "about", "above", "across", "act", "active", "activity", "cake", "call", "can", "candle", "keep",
+                 "kin","key", "kill", "kind", "king"]
+        fig = plt.figure(figsize=(6, 4))
+        graph_axis = fig.add_axes([0, 0, 1, 1])
+        trie = make_trie(map(lambda x: x.upper(), words))
+        e, word_nodes, node_to_letter = get_trie_information(trie, set(), set(), dict())
+        graph, pos = init_trie_axis(graph_axis, e, node_to_letter)
+        update_trie_axis(graph, graph_axis, node_to_letter, word_nodes=word_nodes, membership=TrieMembership.word,
+                         pos=pos, trie=trie,
+                         new_word="")
+        plt.savefig("../../../andrewzwicky.github.io/img/posts/boggle_solver/example_trie.png")
+        update_trie_axis(graph, graph_axis, node_to_letter, word_nodes=word_nodes, membership=TrieMembership.word,
+                         pos=pos, trie=trie,
+                         new_word="KIN")
+        plt.savefig("../../../andrewzwicky.github.io/img/posts/boggle_solver/example_trie_1.png")
+        update_trie_axis(graph, graph_axis, node_to_letter, word_nodes=word_nodes, membership=TrieMembership.word,
+                         pos=pos, trie=trie,
+                         new_word="KIND")
+        plt.savefig("../../../andrewzwicky.github.io/img/posts/boggle_solver/example_trie_2.png")
+        update_trie_axis(graph, graph_axis, node_to_letter, word_nodes=word_nodes, membership=TrieMembership.word,
+                         pos=pos, trie=trie,
+                         new_word="KING")
+        plt.savefig("../../../andrewzwicky.github.io/img/posts/boggle_solver/example_trie_3.png")
 
 
 # todo: line between trie and boggle board is goofy
 # todo: generation is messed up on path gif
 # todo: try to space out nodes more on trie gif
 # todo: trie gif includes lots of paths that aren't in the trie (prefixes?)
-
