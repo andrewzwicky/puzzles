@@ -96,15 +96,13 @@ def neighbors(x, y):
     if not 0 <= x < BOARD_SIZE or not 0 <= y < BOARD_SIZE:
         raise ValueError("square not within board")
 
-    """
-    x is the x index of the supplied square.  To cover squares to
-    the left and right, we should go from x-1 to x+1.  Because
-    the range() function is not inclusive on the upper bound,
-    we'll need to go to x+2.
+    # x is the x index of the supplied square.  To cover squares to
+    # the left and right, we should go from x-1 to x+1.  Because
+    # the range() function is not inclusive on the upper bound,
+    # we'll need to go to x+2.
 
-    To prevent returning squares that are outside the board, the
-    range should be capped at 0 and BOARD_SIZE.
-    """
+    # To prevent returning squares that are outside the board, the
+    # range should be capped at 0 and BOARD_SIZE.
 
     lower_x = max(0, x - 1)
     upper_x = min(x + 2, BOARD_SIZE)

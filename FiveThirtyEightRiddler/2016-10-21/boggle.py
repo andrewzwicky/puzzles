@@ -10,7 +10,7 @@ import pickle
 import matplotlib.pyplot as plt
 import numpy
 import itertools
-from recurse_grid import recurse_grid_external, BOARD_SIZE, NUM, TrieMembership, make_trie, END
+from recurse_grid import recurse_grid_external, BOARD_SIZE, NUM, TrieMembership, make_trie, END, recurse_grid_internal
 import matplotlib.animation as animation
 import networkx as nx
 from networkx.drawing.nx_agraph import graphviz_layout
@@ -35,7 +35,6 @@ def init_boggle_board_axis(ax, input_string):
 
     ax.set_axis_bgcolor('#E6E3DB')
 
-    [sp.set_visible(False) for sp in ax.spines.values()]
     ax.set_ylim(0, BOARD_SIZE)
     ax.set_xlim(0, BOARD_SIZE)
     ax.set_xticklabels([])
@@ -108,13 +107,16 @@ def boggle_board_only_figure(input_string=None):
 
 def boggle_trie_figure(input_string, edges, node_to_letter):
     fig = plt.figure(figsize=(12, 6), facecolor="#FFFFFF")
-    board_axis = plt.subplot2grid((1, 2), (0, 0), axisbg='#E6E3DB')
-    trie_axis = plt.subplot2grid((1, 2), (0, 1))
 
-    line, letters, annotations = init_boggle_board_axis(board_axis, input_string)
+    trie_axis = plt.subplot2grid((1, 12), (0, 5), colspan=8)
+    board_axis = plt.subplot2grid((1, 12), (0, 0), axisbg='#E6E3DB', colspan=5)
+
     graph, pos = init_trie_axis(trie_axis, edges, node_to_letter)
+    line, letters, annotations = init_boggle_board_axis(board_axis, input_string)
 
-    plt.subplots_adjust(wspace=0, hspace=0)
+    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0.1)
+
+    trie_axis.autoscale_view(True, True, True)
 
     return fig, line, letters, annotations, trie_axis, graph, pos
 
@@ -123,11 +125,11 @@ def boggle_trie_figure(input_string, edges, node_to_letter):
 
 # region animation figure update methods
 def update_animation_figure_wrapper(frame_num, line, letters, annotations, graph, graph_axis, node_to_letter,
-                                    update_dict_generator):
+                                    word_nodes, update_dict_generator):
     output = next(update_dict_generator)
     update_boggle_axis(line, letters, annotations, **output)
     if graph is not None:
-        update_trie_axis(graph, graph_axis, node_to_letter, **output)
+        update_trie_axis(graph, graph_axis, node_to_letter, word_nodes, **output)
 
 
 def update_boggle_axis(line,
@@ -154,6 +156,8 @@ def update_boggle_axis(line,
             letter.set_text(new_letter)
 
     if new_word_coords is not None:
+        if len(new_word_coords) == 1:
+            new_word_coords = [new_word_coords[0]] +[tuple(map(lambda x: x+.001,new_word_coords[0]))]
         x, y = zip(*list(map(word_coord_to_plot_coord, new_word_coords)))
 
         line.set_xdata(x)
@@ -290,6 +294,7 @@ def mutate_grid(individual, indpb):
 
 def generate_path_gif(logbook, output_file):
     best_grid_string = logbook.chapters['boards'][-1]['best']
+    gen = logbook[-1]['gen']
     fig, line, letters, annotations = boggle_board_only_figure(best_grid_string)
     best_grid = transform_grid_string_to_list(best_grid_string)
     data = [(path, word, membership) for path, word, membership in recurse_grid_external(best_grid)]
@@ -302,8 +307,10 @@ def generate_path_gif(logbook, output_file):
                                               None,
                                               None,
                                               None,
-                                              itertools.cycle(generate_path_annotations(data, len(data)))),
-                                       repeat=True)
+                                              None,
+                                              itertools.cycle(generate_path_annotations(data, gen))),
+                                       repeat=True,
+                                       save_count=len(data))
 
     line_ani.save(output_file, writer="imagemagick", fps=10)
 
@@ -319,18 +326,25 @@ def generate_evolution_gif(logbook, output_file):
                                               None,
                                               None,
                                               None,
+                                              None,
                                               itertools.cycle(generate_evolution_annotations(logbook))),
-                                       repeat=True)
+                                       repeat=True,
+                                       save_count=len(logbook.chapters['boards']))
     grid_ani.save(output_file, writer="imagemagick", fps=4)
 
 
-def generate_trie_gif(logbook, output_file):
+def generate_trie_gif(logbook, output_file, best_grid_string=None, this_grid_trie=None):
     frame_limit = 300
-    best_grid_string = logbook.chapters['boards'][-1]['best']
+    if best_grid_string is None:
+        best_grid_string = logbook.chapters['boards'][-1]['best']
     best_grid = transform_grid_string_to_list(best_grid_string)
-    data = [(path, word, membership) for path, word, membership in recurse_grid_external(best_grid, full_output=True)]
-    grid_words = [word for path, word, membership in data[:frame_limit] if membership == TrieMembership.word]
-    this_grid_trie = make_trie(grid_words)
+
+    if this_grid_trie is None:
+        data = [(path, word, membership) for path, word, membership in recurse_grid_external(best_grid, full_output=True)]
+        grid_words = [word for path, word, membership in data[:frame_limit] if membership == TrieMembership.word]
+        this_grid_trie = make_trie(grid_words)
+    else:
+        data = [(path, word, membership) for path, word, membership in recurse_grid_internal(best_grid, list(), "", this_grid_trie, set(), full_output=True)]
     edges, word_nodes, nodes_to_letters = get_trie_information(this_grid_trie, set(), set(), dict())
     fig, line, letters, annotations, graph_axis, graph, pos = boggle_trie_figure(best_grid_string, edges,
                                                                                  nodes_to_letters)
@@ -342,10 +356,12 @@ def generate_trie_gif(logbook, output_file):
                                               graph,
                                               graph_axis,
                                               nodes_to_letters,
+                                              word_nodes,
                                               itertools.cycle(
-                                                  generate_trie_annotations(data[:frame_limit], this_grid_trie, pos))),
-                                       repeat=True)
-    grid_ani.save(output_file, writer="imagemagick", fps=1)
+                                                  generate_trie_annotations(data, this_grid_trie, pos))),
+                                       repeat=True,
+                                       save_count=min(frame_limit, len(data)))
+    grid_ani.save(output_file, writer="imagemagick", fps=2)
     print("done")
 
 
@@ -358,15 +374,16 @@ def generate_final_board(logbook, output_file):
 def generate_generation_scores(logbook, output_file):
     top_scores = [gen['max'] for gen in logbook.chapters['scores']]
     avg_scores = [gen['avg'] for gen in logbook.chapters['scores']]
-    fig = plt.figure()
+    fig = plt.figure(facecolor='#FFFFFF')
     ax = fig.add_subplot(111)
-    ax.set_title('top score of each generation')
-    plt.plot(range(len(top_scores)), top_scores, color='r')
-    plt.plot(range(len(avg_scores)), avg_scores, color='k-')
+    ax.set_title('score of each generation')
+    plt.plot(range(len(top_scores)), top_scores, color='r', label="max")
+    plt.plot(range(len(avg_scores)), avg_scores, color='k', label="avg")
+    ax.legend(loc=2)
     ax.set_xlabel('generation')
     ax.set_ylabel('score')
 
-    plt.savefig(output_file, facecolor='w')
+    plt.savefig(output_file)
 
 
 # endregion
@@ -585,15 +602,15 @@ if __name__ == "__main__":
         else:
             highest_gen_file = None
         print(highest_gen_file)
-        p, l, h = simulate(population=1000000, generations=100, checkpoint=highest_gen_file)
-        generate_evolution_gif(l, "evo.gif")
-        generate_path_gif(l, "path.gif")
+        p, l, h = simulate(population=1000000, generations=20, checkpoint=highest_gen_file)
+        #generate_evolution_gif(l, "evo.gif")
+        #generate_path_gif(l, "path.gif")
         generate_trie_gif(l, "trie.gif")
-        generate_final_board(l, "final_board.png")
-        generate_generation_scores(l, "scores_over_time.png")
+        #generate_final_board(l, "final_board.png")
+        #generate_generation_scores(l, "scores_over_time.png")
     else:
         words = ["a", "about", "above", "across", "act", "active", "activity", "cake", "call", "can", "candle", "keep",
-                 "kin","key", "kill", "kind", "king"]
+                 "kin", "key", "kill", "kind", "king"]
         fig = plt.figure(figsize=(6, 4))
         graph_axis = fig.add_axes([0, 0, 1, 1])
         trie = make_trie(map(lambda x: x.upper(), words))
@@ -616,6 +633,7 @@ if __name__ == "__main__":
                          new_word="KING")
         plt.savefig("../../../andrewzwicky.github.io/img/posts/boggle_solver/example_trie_3.png")
 
+        generate_trie_gif(None, "example_trie_animation.gif", best_grid_string="ABOVCAKETIYEGNDP", this_grid_trie=trie)
 
 # todo: line between trie and boggle board is goofy
 # todo: generation is messed up on path gif
