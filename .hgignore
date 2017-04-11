@@ -5,3 +5,4 @@ ACM-ICPC/.*?/secret/.*?
 .*pkl$
 .*?\.idea/.*?
 .*?\.cache/.*?
+.*\.orig
