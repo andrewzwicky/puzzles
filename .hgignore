@@ -6,3 +6,4 @@ ACM-ICPC/.*?/secret/.*?
 .*?\.idea/.*?
 .*?\.cache/.*?
 .*\.orig
+puzzles_venv/.*
