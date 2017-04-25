@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 import matplotlib.patches as patches
 
 
-def plot_sims(years, simulations):
+def plot_sims(years, simulations, ylims):
     fig, ax = plt.subplots(figsize=(14, 10))
     fig.patch.set_facecolor('white')
     plt.subplots_adjust(wspace=0)
@@ -13,7 +13,7 @@ def plot_sims(years, simulations):
         ax1.plot(years, sim, linewidth=2, alpha=0.02, color='k')
 
     ax1.set_xlim([0,years[-1]])
-    ax1.set_ylim([0.5,1])
+    ax1.set_ylim(ylims)
 
     ax2 = plt.subplot2grid((1, 3), (0, 2))
     ax2.xaxis.tick_top()
@@ -34,11 +34,15 @@ def plot_sims(years, simulations):
     plt.show()
 
 
-def stacked_plot_bench_over_time(years, bench_stacks, mean):
+def stacked_plot_bench_over_time(years, bench_stacks, mean, color_trans, party_enum):
     fig, ax = plt.subplots(1, facecolor='white', figsize=(14,6))
     plt.tight_layout(pad=0, w_pad=0.5, h_pad=0)
 
-    k = ax.stackplot(years, bench_stacks, colors=('blue','white','red'), labels=("D","","R"))
+    labels = [""] + [e.name for e in party_enum]
+    colors = ["white"] + [color_trans[e] for e in party_enum]
+
+
+    k = ax.stackplot(years, bench_stacks, colors=colors, labels=labels)
 
     ax.plot(years, mean, 'white', linewidth=6)
     ax.plot(years, mean, 'k', linewidth=3, label = "average empty seats")
@@ -65,7 +69,8 @@ def stacked_plot_bench_over_time_with_parties(years,
                                               bench_stacks,
                                               pres_parties,
                                               sen_parties,
-                                              color_trans):
+                                              color_trans,
+                                              party_enum):
 
     fig, ax = plt.subplots(figsize=(14, 10))
     fig.patch.set_facecolor('white')
@@ -73,7 +78,10 @@ def stacked_plot_bench_over_time_with_parties(years,
 
     ax1 = plt.subplot2grid((10, 1), (0, 0), rowspan=9)
 
-    k = ax1.stackplot(years, bench_stacks, colors=('blue','white','red'), labels=("D","","R"))
+    labels = [""] + [e.name for e in party_enum]
+    colors = ["white"] + [color_trans[e] for e in party_enum]
+
+    k = ax1.stackplot(years, bench_stacks, colors=colors, labels=labels)
 
     ax1.tick_params(axis='x', which='both', labelbottom='off', labeltop='off')
     ax1.set_xlim([years[0],years[-1]])
