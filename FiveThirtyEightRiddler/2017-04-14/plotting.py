@@ -10,7 +10,7 @@ def plot_sims(years, simulations, ylims):
     ax1 = plt.subplot2grid((1, 3), (0, 0), colspan=2)
 
     for sim in simulations:
-        ax1.plot(years, sim, linewidth=2, alpha=0.02, color='k')
+        ax1.plot(years, sim, linewidth=2, alpha=0.01, color='k')
 
     ax1.set_xlim([0,years[-1]])
     ax1.set_ylim(ylims)
