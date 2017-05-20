@@ -7,3 +7,5 @@ ACM-ICPC/.*?/secret/.*?
 .*?\.cache/.*?
 .*\.orig
 puzzles_venv/.*
+.*\.aux$
+.*\.log$
