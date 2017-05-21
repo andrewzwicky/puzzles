@@ -8,15 +8,20 @@
 \usepackage{blkarray}
 \usepackage{graphicx}
 
-\definecolor{mygray}{gray}{0.7}
 \pagecolor{white}
-
 
 \begin{document}
 \begin{tikzpicture}
 
-\node (0) [] at (0, 0) {$
-[0, 0],[0, 1],[0, 2],[1, 0],[1, 1],[1, 2],[2, 0],[2, 1],[2, 2]
-$};
+    \node (0) [] at (0, 0) {$
+    T =
+    \begin{blockarray}{ccc}
+    & S & R \\
+    \begin{block}{c[cc]}
+        S & 0.9 & 0.1 \\
+        R & 0.5 & 0.5 \\
+    \end{block}
+    \end{blockarray}
+    $};
 \end{tikzpicture}
 \end{document}

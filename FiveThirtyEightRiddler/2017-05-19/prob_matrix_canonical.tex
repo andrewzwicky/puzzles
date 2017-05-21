@@ -1,0 +1,33 @@
+\documentclass[tikz]{standalone}
+
+\usepackage{tikz}
+\usepackage{pagecolor}
+\usepackage{color}
+\usepackage{blkarray}
+
+\definecolor{mygray}{gray}{0.7}
+\pagecolor{white}
+
+\begin{document}
+\begin{tikzpicture}
+
+\node (0) [] at (0, 0) {$T=
+\begin{blockarray}{cccccccccc}
+& {[0, 0]} & {[0, 1]} & {[0, 2]} & {[1, 0]} & {[1, 1]} & {[1, 2]} & {[2, 0]} & {[2, 1]} & {[2, 2]} \\
+\begin{block}{c[cccccccc][c]}
+    {[0, 0]} & 0.875 & 0.075 & \textcolor{mygray}{0}& 0.05 & \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}\\
+    {[0, 1]} & \textcolor{mygray}{0}& 0.875 & 0.075 & \textcolor{mygray}{0}& 0.05 & \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}\\
+    {[0, 2]} & \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.9 & \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.1 & \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}\\
+    {[1, 0]} & \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.875 & 0.075 & \textcolor{mygray}{0}& 0.05 & \textcolor{mygray}{0}& \textcolor{mygray}{0}\\
+    {[1, 1]} & \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.875 & 0.075 & \textcolor{mygray}{0}& 0.05 & \textcolor{mygray}{0}\\
+    {[1, 2]} & \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.9 & \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.1 \\
+    {[2, 0]} & \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.85 & 0.15 & \textcolor{mygray}{0}\\
+    {[2, 1]} & \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.85 & 0.15 \\
+\end{block}
+\begin{block}{c[cccccccc][c]}
+    {[2, 2]} & \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0} & 1.0 \\
+\end{block}
+\end{blockarray}
+$};
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,27 @@
+\documentclass[tikz]{standalone}
+
+\usepackage{tikz}
+\usepackage{pagecolor}
+\usepackage{color}
+\usepackage{blkarray}
+
+\definecolor{mygray}{gray}{0.7}
+\pagecolor{white}
+
+\begin{document}
+\begin{tikzpicture}
+
+\node (0) [] at (0, 0) {$Q=
+\begin{blockarray}{[cccccccccc]}
+    0.875 & 0.075 & \textcolor{mygray}{0}& 0.05 & \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0} \\
+    \textcolor{mygray}{0}& 0.875 & 0.075 & \textcolor{mygray}{0}& 0.05 & \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0} \\
+    \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.9 & \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.1 & \textcolor{mygray}{0}& \textcolor{mygray}{0} \\
+    \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.875 & 0.075 & \textcolor{mygray}{0}& 0.05 & \textcolor{mygray}{0} \\
+    \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.875 & 0.075 & \textcolor{mygray}{0}& 0.05  \\
+    \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.9 & \textcolor{mygray}{0}& \textcolor{mygray}{0} \\
+    \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.85 & 0.15  \\
+    \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& \textcolor{mygray}{0}& 0.85  \\
+\end{blockarray}
+$};
+\end{tikzpicture}
+\end{document}
