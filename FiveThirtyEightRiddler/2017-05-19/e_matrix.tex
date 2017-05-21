@@ -4,6 +4,7 @@
 \usepackage{pagecolor}
 \usepackage{color}
 \usepackage{blkarray}
+\usepackage{amsmath}
 
 \definecolor{mygray}{gray}{0.7}
 \pagecolor{white}
@@ -12,6 +13,8 @@
 \begin{tikzpicture}
 
 \node (0) [] at (0, 0) {$E=
+N \times \begin{bmatrix}1 \\ \vdots \\ 1\end{bmatrix}
+=
 \begin{blockarray}{[cccccccccc]}
     8.0 & 4.8 & 3.6 & 3.2 & 3.84 & 6.48 & 1.067 & 2.3467 \\
     \textcolor{mygray}{0} & 8.0 & 6.0 & \textcolor{mygray}{0} & 3.2 & 8.4 & \textcolor{mygray}{0} & 1.067 \\

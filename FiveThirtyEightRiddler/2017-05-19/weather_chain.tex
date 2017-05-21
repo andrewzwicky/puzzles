@@ -1,0 +1,22 @@
+\documentclass{standalone}
+
+\usepackage{tikz}
+\usetikzlibrary{automata, positioning}
+
+\begin{document}
+    \begin{tikzpicture}[font=\sffamily]
+
+    % Add the states
+    \node[state]                 (S)   {Sunny};
+    \node[state, right=2cm of S] (R)   {Rainy};
+
+    % Connect the states with arrows
+    \draw[every loop,
+          line width=0.5mm,
+          >=stealth]
+        (S)   edge[draw=green, bend right] node[midway, fill=white, fill opacity = 0.9, text opacity=1] {0.1} (R)
+        (R) edge[bend right] node[midway, fill=white, fill opacity = 0.9, text opacity=1] {0.5} (S)
+        (S) edge[loop left]  node {0.9} (S)
+        (R) edge[loop right] node {0.5} (R);
+   \end{tikzpicture}
+\end{document}

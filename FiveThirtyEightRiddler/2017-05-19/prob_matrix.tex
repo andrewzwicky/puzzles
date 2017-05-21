@@ -15,6 +15,14 @@
 \begin{document}
 \begin{tikzpicture}
 
+\node (A) at (-4.7, 0) {};
+\node (B) at (1.9, 0) {};
+\node (C) at (2.3, .1) {};
+\node (D) at (2.3, 2 ) {};
+\node (E) at (2.8, 0.2) {};
+\node (F) at (1.8, -0.2) {};
+
+
 \node (0) [] at (0, 0) {$T=
 \begin{blockarray}{cccccccccc}
 & [0, 0] & [0, 1] & [0, 2] & [1, 0] & [1, 1] & [1, 2] & [2, 0] & [2, 1] & [2, 2] \\
@@ -31,5 +39,16 @@
 \end{block}
 \end{blockarray}
 $};
+
+\draw [->,
+    line width=1mm,
+    draw=green,
+    fill=green,
+    draw opacity=.3]
+    (A) -- (B) (C) -- (D);
+
+\draw[fill=green, fill opacity = .3, draw=green] (E) rectangle (F);
+
+
 \end{tikzpicture}
 \end{document}
