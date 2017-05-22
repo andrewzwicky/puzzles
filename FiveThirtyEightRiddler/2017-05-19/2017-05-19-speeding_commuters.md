@@ -1,14 +1,14 @@
 ---
 layout:     post
 title:      "Speeding Commuters"
-date:       2017-05-19 10:00:00
+date:       2017-05-21 20:00:00
 author:     Andrew
 header-img: img/posts/speeding_commuters/traffic_bg.jpg
 header-credit: unsplash.com/@drh02
-tags:       programming riddler probability
+tags:       programming riddler probability "markov chains"
 ---
 
-This week's [riddler express](http://fivethirtyeight.com/features/the-battle-for-riddler-nation-round-2/) was a great level of difficulty, and I thought it was worthy of a write-up.  Hope you enjoy!
+This week's [riddler express](http://fivethirtyeight.com/features/the-battle-for-riddler-nation-round-2/) was a great level of difficulty, not too tough, but still a challenge!  I thought it was worthy of a write-up.  One of my goals is to make these posts enjoyable for everyone, not just the people who are puzzle crazy like I am.  If you have tips for things you thought were confusing or difficult to understand, let me know.  Hope you enjoy!
 
 > From Jerry Meyers, a careening commute problem:  
 > &nbsp;  
@@ -17,8 +17,8 @@ This week's [riddler express](http://fivethirtyeight.com/features/the-battle-for
 > Assuming that all four drivers start with no tickets, how many days can we expect the carpool to last until all the drivers have lost their licenses?
 
 # What do we know?
-First, let's make some observations about the problem.  At the beginning of each trip, each driver will have some amount of tickets.  I'm going to refer to these amounts as a **state**.  For example, if Drivers A & B each had 1 ticket, I'll write that state as `[1, 1, 0, 0]`. The intial state is `[0, 0, 0, 0]`.
-
+First, let's make some observations about the problem.  At the beginning of each trip, each driver will have some amount of tickets.  I'm going to refer to these amounts as a **state**.  For example, if Drivers A & B each had 1 ticket, I'll write that state as `[1, 1, 0, 0]`. The intial state is `[0, 0, 0, 0]` and the end state is `[3, 3, 3, 3]` (all drivers are suspended).
+<!--break-->
 #### 1. There are a limited number of states
 Each driver starts with 0 tickets and stops receiving them after their 3rd.  Because there is a cap on the amount of tickets, and a fixed number of drivers, there is a finite number of ways that tickets can be distributed amongst our drivers.
 
@@ -31,8 +31,6 @@ If Driver A and Driver B each have 1 ticket, the probability that Driver C will 
 
 
 #### 3. The end state can be reached from any other state
-The end state is the one where all drivers have received their maximum number of tickets, `[3, 3, 3, 3]`.
-
 If I selected any possible distribution of tickets, it's possible to reach the end state by issuing more tickets.  No matter which state we pick, we can always make our way to the end state in a finite number of steps.  This is probably the most abstract of all of these observations, but it's important to the solution, so stick around!
 
 # Why do those matter?
@@ -48,7 +46,7 @@ In general, Markov chains are good at modeling board games involving dice.  Anal
 
 In our riddle, observation **2** provides the "memoryless" criteria and observation **1** shows that there is a finite number of states.  It's looking good that we could use Markov chains to solve our riddle.
 
-#### example Markov chain
+#### Example Markov chain
 Let's pretend tomorrow's weather depends *only* on today's weather, and there are only two types of weather: **rainy** or **sunny**[^weather].  The weather follows these patterns:
 * If it's sunny today, tommorow's weather is: 
   * 90% likely to remain sunny.
@@ -70,13 +68,15 @@ I've highlighted one transition in the chain and its corresponding entry in the 
 
 You might be wondering how we're going to relate this foray into Markov chains back to our riddle.
 
-We can use Markov chains to our advantage by modeling our scenario as follows.  Take each possible state of ticket distribution, and make that a state in our Markov chain.  Each transition in the chain would represent a trip.  This means that by calculating the probabilities that tickets will be issued, we could make a transition matrix that represents the drivers taking trips until they're all suspended.
+The key insight is that the parameters of the riddle mean **we can model our riddle as a Markov chain**.  Each distribution of tickets is an individual state in the chain, and each transition between states represents a single trip.  By calculating the probabilities for all the possible transitions, we can make a transition matrix that represents the drivers taking trips until they're all suspended.
 
 ## Feeling lucky?
 
 Now we need to start calculating probabilities.  In particular, we're interested in the probability that a driver gets a ticket, given an initial state.
 
-We know that for each trip, there are $$x$$ available drivers, where $$x$$ is the number of drivers that do not have 3 tickets.  This means each eligible driver has a $$\frac{1}{x}$$ chance of being selected to drive that trip.  Additionally, we know that each driver has a probability $$p$$ that they will receive a ticket *if they drive*.  This means that for each trip, *before the driver is selected*, the probability that an individual driver will be ticketed is $$\frac{1}{x} \times p$$. For example, assume the state is `[1, 1, 2, 0]`.  All 4 drivers are available, so $$x$$=4.  Driver C's $$p$$ is 0.20.  This makes Driver C's probability of receiving a ticket $$\frac{0.20}{4} = 0.05$$.
+We know that for each trip, there are $$x$$ available drivers, where $$x$$ is the number of drivers that do not have 3 tickets.  This means each eligible driver has a $$\frac{1}{x}$$ chance of being selected to drive that trip.  Additionally, we know that each driver has a probability $$p$$ that they will receive a ticket *if they drive*.  This means that for each trip, *before the driver is selected*, the probability that an individual driver will be ticketed is $$\frac{1}{x} \times p$$.
+
+For example, assume the state is `[1, 1, 2, 0]`.  All 4 drivers are available, so $$x$$=4.  Driver C's $$p$$ is 0.20.  This makes Driver C's probability of receiving a ticket $$\frac{0.20}{4} = 0.05$$.
 
 If the state was `[3, 1, 2, 0]` instead, Driver C would be more likely to receive a ticket because it's more likely they will be selected at random to drive!  Their ticket probability is now $$\frac{0.20}{3} = 0.067$$.
 
@@ -106,7 +106,7 @@ and the corresponding transition matrix:
 
 Again, I've highlighted a particular transition in both the chain and the transition matrix, to make it clear how they relate.
 
-The higlighted transition shows that if Driver A & B each have 1 ticket, the probability, *at the start of a trip, before the driver is chosen*, Driver B has a .075 probability of receiving a ticket on that trip.
+The higlighted transition shows that if Driver A & B each have 1 ticket, *at the start of a trip, before the driver is chosen*, Driver B has a .075 probability of receiving a ticket on that trip.
 
 We can double check that our translation matrix is plausible by confirming the following assumptions:
 * there are no possible transitions that reduce any driver's number of tickets
@@ -157,10 +157,9 @@ From that, we can get $$E$$, which is the [expected number of steps](https://en.
 ![e_mat]({{ site.baseurl }}/img/posts/speeding_commuters/e_matrix.png)
 
 # The Checkered Flag
-In this case, $$E$$ tells us, for each possible starting state, how many trips we should expect before we reach the absorbing state.  The important one for the riddle is `[0, 0]`.  For our reduced example, we should expect 33.33 trips, or ~16.5 days for both of our drivers to be suspended.  If both of our drivers started with 1 ticket, it would take exactly half as long, or a little over 8 days.
+In this case, $$E$$ tells us, for each possible starting state, how many trips we should expect before all drivers are suspended.  The important one for the riddle is `[0, 0]`.  For our reduced example, we should expect 33.33 trips, or ~16.5 days for both of our drivers to be suspended.  If both of our drivers started with 1 ticket, it would take exactly half as long, or a little over 8 days.
 
-### The Original Riddle
-Now all that's left to do it perform this same analysis on the original problem parameters of 3 tickets to suspension and all the drivers.  With our 256 states, showing any visuals is quite difficult.  Running through the numbers shows that we should expect all drivers to be suspended at **38.5 days**.
+Now all that's left to do it perform this same calculations on the original problem parameters of 3 tickets to suspension and all 4 drivers.  With our 256 states, showing any visuals is quite difficult.  Running through the numbers shows that we should expect all drivers to be suspended at **38.5 days**.
 
 For processes that run in discrete steps and can be represented by a fixed number of states, Markov chains are a great way to learn about how the system evolves and to calculate useful properties about it as well.  I hope you learned a bit, and be sure to ask me any questions if you have them!
 
