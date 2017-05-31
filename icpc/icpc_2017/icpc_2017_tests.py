@@ -3,6 +3,7 @@ import pytest
 import math
 from icpc_2017.e_speed import e_speed
 from icpc_2017.b_clue import b_clue
+from icpc_2017.c_improbable import c_improbable
 
 TEST_DATA_FOLDER = "icpc/icpc_2017/test_data/icpc2017data/"
 
@@ -33,18 +34,25 @@ def get_test_ids(folder):
 
     return names
 
+@pytest.mark.parametrize("input_string,expected",
+                         get_test_data("B-clue"),
+                         ids=get_test_ids("B-clue"))
+#@pytest.mark.timeout(4)
+def test_b_clue(input_string, expected):
+    assert b_clue(input_string) == expected
+
 
 @pytest.mark.parametrize("input_string,expected",
                          get_test_data("E-speed"),
                          ids=get_test_ids("E-speed"))
-@pytest.mark.timeout(2)
+@pytest.mark.timeout(1)
 def test_e_speed(input_string, expected):
     assert math.isclose(e_speed(input_string),float(expected), rel_tol=10**-6, abs_tol=10**-6)
 
 
 @pytest.mark.parametrize("input_string,expected",
-                         get_test_data("B-clue"),
-                         ids=get_test_ids("B-clue"))
-@pytest.mark.timeout(2)
-def test_b_clue(input_string, expected):
-    assert b_clue(input_string) == expected
+                         get_test_data("C-improbable"),
+                         ids=get_test_ids("C-improbable"))
+@pytest.mark.timeout(1)
+def test_c_improbable(input_string, expected):
+    assert c_improbable(input_string) == int(expected)
