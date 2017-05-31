@@ -70,30 +70,37 @@ def process_guesses(cards, guesses, num_others=3):
     room = set()
 
     player_cards = [cards] + [set() for _ in range(num_others)]
+    player_possibles = [set()] + [set() for _ in range(num_others)]
     player_not_cards = [ALL_CARDS - cards] + [set(cards) for _ in range(num_others)]
 
     while True:
         prev_player_cards = deepcopy(player_cards)
-        for player_turn, (guess, reveals) in zip(cycle(range(4)), guesses):
+        prev_player_possibles = deepcopy(player_possibles)
+        prev_player_not_cards = deepcopy(player_not_cards)
+        for player_turn, (guess, reveals) in zip(cycle(range(1,5)), guesses):
             for player, reveal in enumerate(reveals):
-                player_index = (player_turn + player + 1) % 4
+                player_index = (player_turn + player) % 4
 
                 if reveal == '-':
+                    # add card to not_cards, remove from possibles
                     player_not_cards[player_index].update(guess)
+                    player_possibles[player_index].difference_update(guess)
 
                 elif reveal in ALL_CARDS:
+                    # add to card, add to others not_cards, remove from other's possibles
                     player_cards[player_index].update(reveal)
-                    [cards.update(reveal) for i, cards in enumerate(player_not_cards)
-                     if i != player_index]
+                    [cards.update(reveal) for i, cards in enumerate(player_not_cards) if i != player_index]
+                    [cards.difference_update(reveal) for i, cards in enumerate(player_possibles) if i != player_index]
 
                 elif reveal == '*':
                     # if two cards are known to not be remaining, we know the last card
                     possibles = guess - player_not_cards[player_index]
                     if len(possibles) == 1:
-                        reveal = possibles
-                        player_cards[player_index].update(reveal)
-                        [cards.update(reveal) for i, cards in enumerate(player_not_cards)
-                         if i != player_index]
+                        player_cards[player_index].update(possibles)
+                        [cards.update(possibles) for i, cards in enumerate(player_not_cards) if i != player_index]
+                        [cards.difference_update(reveal) for i, cards in enumerate(player_possibles) if i != player_index]
+                    else:
+                        player_possibles[player_index].update(possibles - player_cards[player_index])
 
         # either players have all cards except 1
         # or all cards except 1 have been proved to not be held
@@ -120,7 +127,9 @@ def process_guesses(cards, guesses, num_others=3):
                 suspect = possibles
 
         if (suspect and weapon and room) or \
-                all([p == o for p, o in zip(prev_player_cards, player_cards)]):
+                (all([p == o for p, o in zip(prev_player_cards, player_cards)]) and \
+                 all([p == o for p, o in zip(prev_player_not_cards, player_not_cards)]) and \
+                 all([p == o for p, o in zip(prev_player_possibles, player_possibles)])):
             # we have solution or
             # no new info was learned
             break
