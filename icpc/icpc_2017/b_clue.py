@@ -61,6 +61,38 @@ ALL_CARDS = SUSPECTS | WEAPONS | ROOMS
 NUM_PLAYERS = 4
 
 
+class Player:
+    def __init__(self, max_cards):
+        self.max_cards = max_cards
+        self.cards = set()
+        self.possible_groups = set()
+        self.not_cards = set()
+
+    def has_cards(self, cards):
+        cards = set(cards)
+        self.cards |= cards
+        self.not_cards -= cards
+
+    def doesnt_have_cards(self, cards):
+        cards = set(cards)
+        self.possible_groups = set(frozenset(p - cards) for p in self.possible_groups)
+        self.possible_groups.discard(frozenset())
+        self.not_cards |= cards
+
+    def add_possible_group(self, p_group):
+        self.possible_groups.add(frozenset(p_group))
+
+    def all_possibles(self):
+        result = set()
+        [result.update(p_group) for p_group in self.possible_groups]
+        return result
+
+    def __eq__(self, other):
+        return self.cards == other.cards and \
+               self.not_cards == other.not_cards and \
+               self.possible_groups == other.possible_groups
+
+
 def parse_input(inp_string):
     cards, *guesses = [''.join(l.split(' ')) for l in inp_string.split('\n')[1:]]
     guesses = [(set(g.strip(' ')[:3]), g.strip(' ')[3:]) for g in guesses]
@@ -68,97 +100,125 @@ def parse_input(inp_string):
 
 
 def process_guesses(cards, guesses):
-    suspect = set()
-    weapon = set()
-    room = set()
+    
+    final_suspect = set()
+    final_weapon = set()
+    final_room = set()
 
-    player_cards = [cards] + [set() for _ in range(NUM_PLAYERS - 1)]
-    player_possibles = [set()] + [set() for _ in range(NUM_PLAYERS - 1)]
-    player_not_cards = [ALL_CARDS - cards] + [set(cards) for _ in range(NUM_PLAYERS - 1)]
+    players = [Player(max_cards) for max_cards in [5, 5, 4, 4]]
+
+    players[0].has_cards(cards)
+    players[0].doesnt_have_cards(ALL_CARDS - cards)
+    [player.doesnt_have_cards(cards) for i, player in enumerate(players) if i != 0]
 
     while True:
-        prev_player_cards = deepcopy(player_cards)
-        prev_player_possibles = deepcopy(player_possibles)
-        prev_player_not_cards = deepcopy(player_not_cards)
+        prev_players = deepcopy(players)
 
-        for player_turn, (guess, reveals) in zip(cycle(range(1, NUM_PLAYERS + 1)), guesses):
-            for player, reveal in enumerate(reveals):
-                reveal_player = (player_turn + player) % 4
-                reveal_player_nice = reveal_player + 1
+        for turn_index, (guess, reveals) in zip(cycle(range(NUM_PLAYERS)), guesses):
+            for player, reveal in enumerate(reveals, start=1):
+                reveal_index = (turn_index + player) % 4
 
                 if reveal == '-':
                     # add card to not_cards, remove from possibles
-                    player_not_cards[reveal_player].update(guess)
-                    player_possibles[reveal_player].difference_update(guess)
+                    players[reveal_index].doesnt_have_cards(guess)
 
                 elif reveal in ALL_CARDS:
                     # add to card, add to others not_cards, remove from other's possibles
-                    player_cards[reveal_player].update(reveal)
-                    [cards.update(reveal) for i, cards in enumerate(player_not_cards) if i != reveal_player]
-                    [cards.difference_update(reveal) for i, cards in enumerate(player_possibles) if i != reveal_player]
+                    players[reveal_index].has_cards(reveal)
+                    [player.doesnt_have_cards(reveal) for i, player in enumerate(players) if i != reveal_index]
 
                 elif reveal == '*':
                     # if two cards are known to not be remaining, we know the last card
-                    possibles = guess - player_not_cards[reveal_player]
+                    possibles = guess - players[reveal_index].not_cards
                     if len(possibles) == 1:
-                        player_cards[reveal_player].update(possibles)
-                        [cards.update(possibles) for i, cards in enumerate(player_not_cards) if i != reveal_player]
-                        [cards.difference_update(reveal) for i, cards in enumerate(player_possibles) if
-                         i != reveal_player]
+                        players[reveal_index].has_cards(possibles)
+                        [player.doesnt_have_cards(possibles) for i, player in enumerate(players) if i != reveal_index]
                     else:
-                        player_possibles[reveal_player].add(frozenset(possibles))
-            other_indices = {1, 2, 3}
+                        players[reveal_index].add_possible_group(possibles)
 
-            for player_a, player_b in combinations(other_indices, 2):
-                player_c = (other_indices - {player_a, player_b}).pop()
-                possibles_overlap = player_possibles[player_a] & player_possibles[player_b]
-                for possibles_set in possibles_overlap:
-                    player_possibles[player_c] = set(frozenset(p - possibles_set) for p in player_possibles[player_c])
+        accounted = set()
 
-            for player_indx, possibles in enumerate(player_possibles):
-                for p in possibles:
-                    if len(p) == 1:
-                        # other options have been eliminated
-                        player_cards[player_indx].update(p)
-                        [cards.update(p) for i, cards in enumerate(player_not_cards) if i != player_indx]
-                        [cards.difference_update(p) for i, cards in enumerate(player_possibles) if
-                         i != player_indx]
+        # look for triplets
+        triplets = set.intersection(*[player.possible_groups for player in players[1:]])
+        for trip in triplets:
+            accounted |= trip
 
-        # either players have all cards except 1
-        # or all cards except 1 have been proved to not be held
-        none_have = set.intersection(*player_not_cards)
+        # look for pairs
+        for i, j in combinations(range(1, NUM_PLAYERS), 2):
+            overlap_possible_groups = players[i].possible_groups & players[j].possible_groups
+            for p_group in overlap_possible_groups:
+                if len(p_group) == 2:
+                    accounted |= p_group
+                    for k in range(NUM_PLAYERS):
+                        if k != i and k != j:
+                            players[k].doesnt_have_cards(p_group)
 
-        if none_have:
-            suspect = SUSPECTS & none_have
-            weapon = WEAPONS & none_have
-            room = ROOMS & none_have
+        for j in range(1, NUM_PLAYERS):
+            for p_group in set(players[j].possible_groups): # call with set to avoid modifying while iterating
+                if len(p_group) == 1:
+                    players[j].has_cards(p_group)
+                    players[j].possible_groups.discard(p_group)
+                    [player.doesnt_have_cards(p_group) for i, player in enumerate(players) if i != j]
 
-        if not suspect:
-            possibles = SUSPECTS - set.union(*player_cards)
-            if len(possibles) == 1:
-                suspect = possibles
+        none_have = set.intersection(*[player.not_cards for player in players])
 
-        if not weapon:
-            possibles = WEAPONS - set.union(*player_cards)
-            if len(possibles) == 1:
-                suspect = possibles
+        suspects = SUSPECTS & none_have
+        weapons = WEAPONS & none_have
+        rooms = ROOMS & none_have
 
-        if not room:
-            possibles = ROOMS - set.union(*player_cards)
-            if len(possibles) == 1:
-                suspect = possibles
+        if suspects:
+            final_suspect = suspects.pop()
 
-        if (suspect and weapon and room) or \
-                (all([p == o for p, o in zip(prev_player_cards, player_cards)]) and
-                 all([p == o for p, o in zip(prev_player_not_cards, player_not_cards)]) and
-                 all([p == o for p, o in zip(prev_player_possibles, player_possibles)])):
-            # we have solution or
-            # no new info was learned
+        if weapons:
+            final_weapon = weapons.pop()
+
+        if rooms:
+            final_room = rooms.pop()
+
+        [accounted.update(player.cards) for player in players]
+
+        if final_suspect:
+            [player.doesnt_have_cards(final_suspect) for i, player in enumerate(players) if i != j]
+        else:
+            suspects = SUSPECTS - accounted
+            if len(suspects) == 1:
+                final_suspect = suspects.pop()
+                [player.doesnt_have_cards(final_suspect) for i, player in enumerate(players) if i != j]
+        
+        if final_weapon:
+            [player.doesnt_have_cards(final_weapon) for i, player in enumerate(players) if i != j]
+        else:
+            weapons = WEAPONS - accounted
+            if len(weapons) == 1:
+                final_weapon = weapons.pop()
+                [player.doesnt_have_cards(final_weapon) for i, player in enumerate(players) if i != j]
+
+        if final_room:
+            [player.doesnt_have_cards(final_room) for i, player in enumerate(players) if i != j]
+        else:
+            rooms = ROOMS - accounted
+            if len(rooms) == 1:
+                final_room = rooms.pop()
+                [player.doesnt_have_cards(final_room) for i, player in enumerate(players) if i != j]
+
+        possibles_remaining = suspects | weapons | rooms
+
+        for j in range(1, NUM_PLAYERS):
+            if len(players[j].cards) < players[j].max_cards:
+                possible_possibles = possibles_remaining - players[j].not_cards
+                if len(possible_possibles) == 1:
+                    players[j].has_cards(possible_possibles)
+                    [player.doesnt_have_cards(final_room) for i, player in enumerate(players) if i != j]
+
+        solution_found = final_suspect and final_weapon and final_room
+        no_changes = all([p == o for p, o in zip(prev_players, players)])
+
+        if solution_found or no_changes:
             break
 
-    outp = "{}{}{}".format(suspect.pop() if suspect else '?',
-                           weapon.pop() if weapon else '?',
-                           room.pop() if room else '?')
+    outp = "{}{}{}".format(final_suspect if final_suspect else '?',
+                           final_weapon if final_weapon else '?',
+                           final_room if final_room else '?')
     return outp
 
 
