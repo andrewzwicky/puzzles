@@ -5,7 +5,7 @@ from icpc_2017.e_speed import e_speed
 from icpc_2017.b_clue import b_clue
 from icpc_2017.c_improbable import c_improbable
 
-TEST_DATA_FOLDER = "icpc/icpc_2017/test_data/icpc2017data/"
+TEST_DATA_FOLDER = "icpc/icpc_2017/test_data/"
 
 def get_test_data(folder):
     folder = os.path.join(TEST_DATA_FOLDER, folder)

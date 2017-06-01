@@ -51,11 +51,14 @@ room.
 
 from copy import deepcopy
 from itertools import cycle
+from itertools import combinations
 
 SUSPECTS = set('ABCDEF')
 WEAPONS = set('GHIJKL')
 ROOMS = set('MNOPQRSTU')
 ALL_CARDS = SUSPECTS | WEAPONS | ROOMS
+
+NUM_PLAYERS = 4
 
 
 def parse_input(inp_string):
@@ -64,43 +67,62 @@ def parse_input(inp_string):
     return set(cards), guesses
 
 
-def process_guesses(cards, guesses, num_others=3):
+def process_guesses(cards, guesses):
     suspect = set()
     weapon = set()
     room = set()
 
-    player_cards = [cards] + [set() for _ in range(num_others)]
-    player_possibles = [set()] + [set() for _ in range(num_others)]
-    player_not_cards = [ALL_CARDS - cards] + [set(cards) for _ in range(num_others)]
+    player_cards = [cards] + [set() for _ in range(NUM_PLAYERS - 1)]
+    player_possibles = [set()] + [set() for _ in range(NUM_PLAYERS - 1)]
+    player_not_cards = [ALL_CARDS - cards] + [set(cards) for _ in range(NUM_PLAYERS - 1)]
 
     while True:
         prev_player_cards = deepcopy(player_cards)
         prev_player_possibles = deepcopy(player_possibles)
         prev_player_not_cards = deepcopy(player_not_cards)
-        for player_turn, (guess, reveals) in zip(cycle(range(1,5)), guesses):
+
+        for player_turn, (guess, reveals) in zip(cycle(range(1, NUM_PLAYERS + 1)), guesses):
             for player, reveal in enumerate(reveals):
-                player_index = (player_turn + player) % 4
+                reveal_player = (player_turn + player) % 4
+                reveal_player_nice = reveal_player + 1
 
                 if reveal == '-':
                     # add card to not_cards, remove from possibles
-                    player_not_cards[player_index].update(guess)
-                    player_possibles[player_index].difference_update(guess)
+                    player_not_cards[reveal_player].update(guess)
+                    player_possibles[reveal_player].difference_update(guess)
 
                 elif reveal in ALL_CARDS:
                     # add to card, add to others not_cards, remove from other's possibles
-                    player_cards[player_index].update(reveal)
-                    [cards.update(reveal) for i, cards in enumerate(player_not_cards) if i != player_index]
-                    [cards.difference_update(reveal) for i, cards in enumerate(player_possibles) if i != player_index]
+                    player_cards[reveal_player].update(reveal)
+                    [cards.update(reveal) for i, cards in enumerate(player_not_cards) if i != reveal_player]
+                    [cards.difference_update(reveal) for i, cards in enumerate(player_possibles) if i != reveal_player]
 
                 elif reveal == '*':
                     # if two cards are known to not be remaining, we know the last card
-                    possibles = guess - player_not_cards[player_index]
+                    possibles = guess - player_not_cards[reveal_player]
                     if len(possibles) == 1:
-                        player_cards[player_index].update(possibles)
-                        [cards.update(possibles) for i, cards in enumerate(player_not_cards) if i != player_index]
-                        [cards.difference_update(reveal) for i, cards in enumerate(player_possibles) if i != player_index]
+                        player_cards[reveal_player].update(possibles)
+                        [cards.update(possibles) for i, cards in enumerate(player_not_cards) if i != reveal_player]
+                        [cards.difference_update(reveal) for i, cards in enumerate(player_possibles) if
+                         i != reveal_player]
                     else:
-                        player_possibles[player_index].update(possibles - player_cards[player_index])
+                        player_possibles[reveal_player].add(frozenset(possibles))
+            other_indices = {1, 2, 3}
+
+            for player_a, player_b in combinations(other_indices, 2):
+                player_c = (other_indices - {player_a, player_b}).pop()
+                possibles_overlap = player_possibles[player_a] & player_possibles[player_b]
+                for possibles_set in possibles_overlap:
+                    player_possibles[player_c] = set(frozenset(p - possibles_set) for p in player_possibles[player_c])
+
+            for player_indx, possibles in enumerate(player_possibles):
+                for p in possibles:
+                    if len(p) == 1:
+                        # other options have been eliminated
+                        player_cards[player_indx].update(p)
+                        [cards.update(p) for i, cards in enumerate(player_not_cards) if i != player_indx]
+                        [cards.difference_update(p) for i, cards in enumerate(player_possibles) if
+                         i != player_indx]
 
         # either players have all cards except 1
         # or all cards except 1 have been proved to not be held
@@ -127,8 +149,8 @@ def process_guesses(cards, guesses, num_others=3):
                 suspect = possibles
 
         if (suspect and weapon and room) or \
-                (all([p == o for p, o in zip(prev_player_cards, player_cards)]) and \
-                 all([p == o for p, o in zip(prev_player_not_cards, player_not_cards)]) and \
+                (all([p == o for p, o in zip(prev_player_cards, player_cards)]) and
+                 all([p == o for p, o in zip(prev_player_not_cards, player_not_cards)]) and
                  all([p == o for p, o in zip(prev_player_possibles, player_possibles)])):
             # we have solution or
             # no new info was learned
