@@ -50,8 +50,7 @@ room.
 """
 
 from copy import deepcopy
-from itertools import cycle
-from itertools import combinations
+from itertools import cycle, combinations, product, permutations
 
 SUSPECTS = set('ABCDEF')
 WEAPONS = set('GHIJKL')
@@ -101,9 +100,9 @@ def parse_input(inp_string):
 
 def process_guesses(cards, guesses):
     
-    final_suspect = set()
-    final_weapon = set()
-    final_room = set()
+    suspect_found = False
+    weapon_found = False
+    room_found = False
 
     players = [Player(max_cards) for max_cards in [5, 5, 4, 4]]
 
@@ -138,6 +137,13 @@ def process_guesses(cards, guesses):
 
         accounted = set()
 
+        # only max_cards possibly left
+        for j in range(1, NUM_PLAYERS):
+            if len(ALL_CARDS) - len(players[j].not_cards) == players[j].max_cards:
+                leftover = ALL_CARDS - players[j].not_cards
+                players[j].has_cards(leftover)
+                [player.doesnt_have_cards(leftover) for i, player in enumerate(players) if i != j]
+
         # look for triplets
         triplets = set.intersection(*[player.possible_groups for player in players[1:]])
         for trip in triplets:
@@ -160,65 +166,59 @@ def process_guesses(cards, guesses):
                     players[j].possible_groups.discard(p_group)
                     [player.doesnt_have_cards(p_group) for i, player in enumerate(players) if i != j]
 
+        accounted.update(set.union(*[player.cards for player in players]))
+
         none_have = set.intersection(*[player.not_cards for player in players])
 
         suspects = SUSPECTS & none_have
         weapons = WEAPONS & none_have
         rooms = ROOMS & none_have
 
-        if suspects:
-            final_suspect = suspects.pop()
-
-        if weapons:
-            final_weapon = weapons.pop()
-
-        if rooms:
-            final_room = rooms.pop()
-
-        [accounted.update(player.cards) for player in players]
-
-        if final_suspect:
-            [player.doesnt_have_cards(final_suspect) for i, player in enumerate(players) if i != j]
-        else:
-            suspects = SUSPECTS - accounted
-            if len(suspects) == 1:
-                final_suspect = suspects.pop()
-                [player.doesnt_have_cards(final_suspect) for i, player in enumerate(players) if i != j]
+        if not suspect_found:
+            if suspects:
+                suspect_found = True
+            else:
+                suspects = SUSPECTS - accounted
+                if len(suspects) == 1:
+                    suspect_found = True
+                    [player.doesnt_have_cards(suspects) for player in players]
         
-        if final_weapon:
-            [player.doesnt_have_cards(final_weapon) for i, player in enumerate(players) if i != j]
-        else:
-            weapons = WEAPONS - accounted
-            if len(weapons) == 1:
-                final_weapon = weapons.pop()
-                [player.doesnt_have_cards(final_weapon) for i, player in enumerate(players) if i != j]
+        if not weapon_found:
+            if weapons:
+                weapon_found = True
+            else:
+                weapons = WEAPONS - accounted
+                if len(weapons) == 1:
+                    weapon_found = True
+                    [player.doesnt_have_cards(weapons) for player in players]
+                    
+        if not room_found:
+            if rooms:
+                room_found = True
+            else:
+                rooms = ROOMS - accounted
+                if len(rooms) == 1:
+                    room_found = True
+                    [player.doesnt_have_cards(rooms) for player in players]
 
-        if final_room:
-            [player.doesnt_have_cards(final_room) for i, player in enumerate(players) if i != j]
-        else:
-            rooms = ROOMS - accounted
-            if len(rooms) == 1:
-                final_room = rooms.pop()
-                [player.doesnt_have_cards(final_room) for i, player in enumerate(players) if i != j]
-
-        possibles_remaining = suspects | weapons | rooms
-
-        for j in range(1, NUM_PLAYERS):
-            if len(players[j].cards) < players[j].max_cards:
-                possible_possibles = possibles_remaining - players[j].not_cards
-                if len(possible_possibles) == 1:
-                    players[j].has_cards(possible_possibles)
-                    [player.doesnt_have_cards(final_room) for i, player in enumerate(players) if i != j]
-
-        solution_found = final_suspect and final_weapon and final_room
+        solution_found = suspect_found and weapon_found and room_found
         no_changes = all([p == o for p, o in zip(prev_players, players)])
 
-        if solution_found or no_changes:
+        if solution_found:
             break
 
-    outp = "{}{}{}".format(final_suspect if final_suspect else '?',
-                           final_weapon if final_weapon else '?',
-                           final_room if final_room else '?')
+        elif no_changes:
+            valid_answers = []
+            for answer in product(suspects, weapons, rooms):
+                answer = set(answer)
+                to_be_assigned = ALL_CARDS - accounted - answer
+                slots = tuple(player.max_cards - len(player.cards) for player in players)
+
+            break
+
+    outp = "{}{}{}".format(suspects.pop() if suspect_found else '?',
+                           weapons.pop() if weapon_found else '?',
+                           rooms.pop() if room_found else '?')
     return outp
 
 

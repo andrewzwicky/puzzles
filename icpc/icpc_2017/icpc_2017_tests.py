@@ -37,7 +37,7 @@ def get_test_ids(folder):
 @pytest.mark.parametrize("input_string,expected",
                          get_test_data("B-clue"),
                          ids=get_test_ids("B-clue"))
-#@pytest.mark.timeout(4)
+#@pytest.mark.timeout(1)
 def test_b_clue(input_string, expected):
     assert b_clue(input_string) == expected
 
@@ -46,6 +46,7 @@ def test_b_clue(input_string, expected):
                          get_test_data("E-speed"),
                          ids=get_test_ids("E-speed"))
 @pytest.mark.timeout(1)
+@pytest.mark.skip()
 def test_e_speed(input_string, expected):
     assert math.isclose(e_speed(input_string),float(expected), rel_tol=10**-6, abs_tol=10**-6)
 
@@ -54,5 +55,6 @@ def test_e_speed(input_string, expected):
                          get_test_data("C-improbable"),
                          ids=get_test_ids("C-improbable"))
 @pytest.mark.timeout(1)
+@pytest.mark.skip()
 def test_c_improbable(input_string, expected):
     assert c_improbable(input_string) == int(expected)
