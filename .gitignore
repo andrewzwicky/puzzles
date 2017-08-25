@@ -1,0 +1,10 @@
+.ipynb_checkpoints/
+icpc/icpc_2017/test_data/
+__pycache__/
+*.pkl
+.idea/
+.cache/
+*.orig
+puzzles_venv/
+*.aux
+*.log
