@@ -1,0 +1,65 @@
+\documentclass[tikz]{standalone}
+
+\usepackage{tikz}
+\usepackage{tcolorbox}
+\usepackage{pagecolor}
+
+\begin{document}
+
+\pagecolor{white}
+\usetikzlibrary{shapes.misc, positioning, calc, arrows}
+
+\begin{tikzpicture}
+
+\tikzstyle{state} = [draw, circle, minimum size=0.5cm]
+\tikzstyle{com} = [draw, circle]
+\tikzstyle{connection} = [draw,-, dashed,very thin, gray]
+\tikzstyle{axis} = [draw,->,>=stealth',semithick]
+\tikzstyle{ground} = [draw,-,very thin, dashed]
+\tikzstyle{extension} = [draw,-,very thin, dashed]
+\tikzstyle{dimension} = [draw,<->,>=stealth',semithick]
+\tikzstyle{anglespec} = [->,>=stealth',semithick]
+\tikzstyle{force} = [->,>=stealth',thick]
+\tikzstyle{callout} = [->,>=stealth',thick]
+
+\def\sidelength{10}
+\def\linkpad{0.6}
+\def\arcdist{3}
+\def\extdist{6}
+\def\loffset{1.2}
+\def\leaderext{0.2}
+\def\cornerround{17pt}
+\def\axissize{2}
+\def\centersize{0.1}
+\def\pivotsize{0.4}
+\def\gravdist{1.5}
+\def\upperoffset{\sidelength*.75}
+\def\democirclerad{1.35}
+
+
+\coordinate[] (O) at (0,0);
+\coordinate[] (A) at (0,{\sidelength/2});
+\coordinate[] (B) at (0,{-\sidelength/2});
+\coordinate[] (C) at ({sqrt(3)*\sidelength/2},0);
+\coordinate[] (X) at ({sqrt(3)*\sidelength/6},0);
+
+\coordinate[] (A2) at (0,\upperoffset);
+\coordinate[] (B2) at ({sqrt(3)*\sidelength/6},{\upperoffset+sqrt(6)*\sidelength/3});
+\coordinate[] (C2) at ({sqrt(3)*\sidelength/2},\upperoffset);
+\coordinate[] (X2) at ({sqrt(3)*\sidelength/6},{\upperoffset+sqrt(6)*\sidelength/6});
+
+
+
+\draw (A) -- (B) -- (C) -- cycle;
+
+\draw (X) circle (\centersize);
+
+\draw (A2) -- (B2) -- (C2) -- cycle;
+
+\draw[dashed] (X) -- (B2);
+
+\draw (X2) circle (\democirclerad);
+
+\end{tikzpicture}
+
+\end{document}
