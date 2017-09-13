@@ -1,0 +1,20 @@
+1,4. Ten books are arranged in a row on a shelf.  How many ways can this be done if one particular book A must always be to the left, but not necessarily immediately to the left, of another book B?
+
+2,8. What is the maximum and minimum number of Friday the thirteenths that can occur in any calendar year?
+
+4,2. What is the minimum number of different calendars it is necessary to have to cover every year?
+
+7,6. A calendar month is said to be "bad" if it has 5 Mondays.  What is the maximum and minimum number of "bad" months in a year?
+
+11,4. The sum of a number of positive integers is 100.  Find the greatest value their product can have.
+
+13,1.  Which is a closer fit, a square peg in a round hole or a round peg in a square hole.
+
+14,2.  A piece of wire 100 cm in length is bent into the shape of a sector of a circle.  Find the maximum value that the area A of the sector can have.
+
+16,10. A and B are towns 20km and 30km from a straight stretch of river 100km long.  Water is pumped from a point P on the river by pipelines to both towns.  Where should P be located to minimize the total length of pipe AP + PB?
+
+23,6. Place the digits 1,2,3,4,5,6,7,8, one in each circle, in such a way that no two consecutive digits are placed in circles which are directly joined by a line segment.
+
+24,1. Place the numbers 1,2,3,4,5,6,7 and 8 one at each corner of a cube in such a way that the sum of the numbers on each of the 6 faces of the cube is the same.
+
