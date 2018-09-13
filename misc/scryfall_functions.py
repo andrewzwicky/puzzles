@@ -25,19 +25,19 @@ def compare_strings(name_1, name_2):
 
     print(f"  neither: {in_neither_spaced}")
 
-    substring = longest_substring(name_1.lower(), name_2.lower())
-    if len(substring) > 1:
-        print(f"substring: '{substring}'")
+    for s in get_matching_blocks(name_1.lower(), name_2.lower()):
+        print(f"block: '{s}'")
+        
     print()
 
 
 # https://stackoverflow.com/a/18717762/2597564
-def longest_substring(string1, string2):
+def get_matching_blocks(string1, string2):
     string1 = string1.lower()
     string2 = string2.lower()
-    a,b,size = difflib.SequenceMatcher(a=string1, b=string2).find_longest_match(0, len(string1), 0, len(string2))
+    blocks = difflib.SequenceMatcher(a=string1, b=string2).get_matching_blocks()
 
-    return string1[a:a+size]
+    return [string1[a:a+size] for (a,_,size) in blocks[:-1] if size>1]
 
 
 class Card:
