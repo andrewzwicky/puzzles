@@ -1,0 +1,32 @@
+#ip 2
+seti 123 0 5      #0  reg[5] = 123
+bani 5 456 5      #1  reg[5] = reg[5] & 456
+eqri 5 72 5       #2  reg[2] = bool(reg[5] == 72)
+addr 5 2 2        #3  reg[2] = reg[5] + reg[2]
+seti 0 0 2        #4  reg[2] = 0
+seti 0 9 5       *#5  reg[5] = 0
+bori 5 65536 3    #6  reg[3] = reg[5] | 65536 [X, 0, 6, 0, 0, 0] result = {str} '0b10000000000000000'
+seti 7586220 4 5 *#7  reg[5] = 7586220 result = {str} '0b11100111100000110101100'
+bani 3 255 1      #8  reg[1] = reg[3] & 255 # 3 last 16 bits are always set
+addr 5 1 5        #9  reg[5] += reg[1]
+bani 5 16777215 5 #10 reg[5] = reg[5] & 16777215 result = {str} '0b111111111111111111111111'
+muli 5 65899 5    #11 reg[5] = reg[5] * 65899
+bani 5 16777215 5 #12 reg[5] = register[5] | 16777215
+gtir 256 3 1      #13 reg[1] = 1 if 256 > reg[3] else 0
+addr 1 2 2        #14 reg[2] += reg[1]
+addi 2 1 2        #15 reg[2] = reg[2] + 1 # skip next line, to 17
+seti 27 9 2       #16 reg[2] = 27 # OK, will go to 28 <--
+seti 0 9 1        #17 reg[1] = 0
+addi 1 1 4        #18 reg[4] = reg[1] + 1
+muli 4 256 4      #19 reg[4] = reg[4] * 256
+gtrr 4 3 4        #20 reg[4] = reg[4] > reg[3] 1, else 0
+addr 4 2 2        #21 reg[2] = reg[2] + reg[4]
+addi 2 1 2        #22 reg[2] = reg[1] + 2 # need to get 29 into here
+seti 25 4 2       #23 reg[2] to 25
+addi 1 1 1        #24 reg[1] = reg[1] + 1 need to set IP to 29
+seti 17 2 2       #25 reg[2] = 17 # IP need to jump
+setr 1 6 3        #26 reg[3] = reg[1]
+seti 7 8 2        #27 reg[2] = 7 # bad, reset
+eqrr 5 0 1        #28 if reg[5] == reg[0] 1, else 0 (both bad), need earlier jump *
+addr 1 2 2        #29 this will get out, reg[2] += reg[1]
+seti 5 0 2        #30 reg[2] = 5 can't get here
