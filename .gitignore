@@ -8,3 +8,4 @@ __pycache__/
 puzzles_venv/
 *.aux
 *.log
+advent_of_code/2020/session.py
