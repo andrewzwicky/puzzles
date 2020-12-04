@@ -26,7 +26,7 @@ def print_problem(day):
 def get_problem_input(day):
     input_response = requests.get(INPUT_URL.format(day), cookies={"session":SESSION})
     
-    data = input_response.text.strip().split("\n")
+    data = input_response.text.split("\n")
 
     print("Data Sample:")
     if len(data) != 0:
