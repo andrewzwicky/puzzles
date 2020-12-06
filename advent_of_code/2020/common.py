@@ -26,17 +26,21 @@ def print_problem(day):
 def get_problem_input(day):
     input_response = requests.get(INPUT_URL.format(day), cookies={"session":SESSION})
     
-    data = input_response.text.split("\n")
+    raw_text = input_response.text
+    cleaned_data = input_response.text.strip().split('\n')
 
-    print("Data Sample:")
-    if len(data) != 0:
-        pprint(data[:min(10, len(data))])
+    print("Raw Data:")
+    print(repr(raw_text[:min(80, len(raw_text))]))
+    
+    print("Split Data:")
+    if len(cleaned_data) != 0:
+        pprint(cleaned_data[:min(10, len(cleaned_data))])
     
     else:
-        data = data[0]
-        pprint(data[:min(80, len(data))])
+        cleaned_data = cleaned_data[0]
+        pprint(cleaned_data[:min(80, len(cleaned_data))])
     
-    return data
+    return raw_text, cleaned_data
     
 def submit_answer(day, level, answer):
     if answer is None:
