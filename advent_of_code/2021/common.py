@@ -67,41 +67,7 @@ def submit_answer(day, level, answer):
         return False
 
 
-# def neighbors(array: np.array, index):
-#     if len(array.shape) == 2:
-#         # 2D
-#         row_min = col_min = 0
-#         row_max, col_max = array.shape
-#         row, col = index
-#         return tuple(
-#             np.broadcast_arrays(
-#                 *np.ogrid[
-#                     max(row_min, row - 1) : min(row_max, row + 2),
-#                     max(col_min, col - 1) : min(col_max, col + 2),
-#                 ]
-#             )
-#         )
-
-#     if len(array.shape) == 3:
-#         # 2D
-#         row_min = col_min = depth_min = 0
-#         row_max, col_max, depth_max = array.shape
-#         row, col, depth = index
-#         return tuple(
-#             np.broadcast_arrays(
-#                 *np.ogrid[
-#                     max(row_min, row - 1) : min(row_max, row + 2),
-#                     max(col_min, col - 1) : min(col_max, col + 2),
-#                     max(depth_min, depth - 1) : min(depth_max, depth + 2),
-#                 ]
-#             )
-#         )
-
-#     else:
-#         raise ValueError
-
-
-def neighbors(arr: np.array, index, center=True, diagonals=True):
+def neighbors(arr: np.array, index, center=True, diagonals=True, UL=True, BR=True):
     shape = arr.shape
     if len(shape) == 2:
         # 2D
@@ -115,6 +81,20 @@ def neighbors(arr: np.array, index, center=True, diagonals=True):
         ].reshape(2, -1)
 
         mask = np.ones(including.shape, dtype=bool)
+
+        if UL is False:
+            where = np.where((including[0, :] <= row) & (including[1, :] <= col))
+            mask[
+                :,
+                np.squeeze(where),
+            ] = False
+
+        if BR is False:
+            where = np.where((including[0, :] >= row) & (including[1, :] >= col))
+            mask[
+                :,
+                np.squeeze(where),
+            ] = False
 
         if center is False:
             where = np.where((including[0, :] == row) & (including[1, :] == col))
