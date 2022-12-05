@@ -34,7 +34,7 @@ def get_problem_input(day):
     input_response = requests.get(INPUT_URL.format(day), cookies={"session": SESSION})
 
     raw_text = input_response.text
-    cleaned_data = input_response.text.strip().split("\n")
+    cleaned_data = input_response.text.rstrip().split("\n")
 
     print("Raw Data:")
     print(repr(raw_text[: min(80, len(raw_text))]))
