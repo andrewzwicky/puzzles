@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from session import SESSION
 from pprint import pprint
 import numpy as np
+from functools import cache
 
 PROBLEM_URL = "https://adventofcode.com/2022/day/{}"
 INPUT_URL = PROBLEM_URL + "/input"
@@ -29,7 +30,7 @@ def print_problem(day):
 
     return str(problem_soup)
 
-
+@cache
 def get_problem_input(day):
     input_response = requests.get(INPUT_URL.format(day), cookies={"session": SESSION})
 
@@ -49,7 +50,7 @@ def get_problem_input(day):
 
     return raw_text, cleaned_data
 
-
+@cache
 def submit_answer(day, level, answer):
     if answer is None:
         return False
