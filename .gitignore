@@ -9,3 +9,5 @@ puzzles_venv/
 *.aux
 *.log
 advent_of_code/*/session.py
+advent_of_code/*/input_*.txt
+advent_of_code/*/answer_*.txt
